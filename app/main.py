@@ -166,21 +166,28 @@ def testanruf(body: TestCall, x_admin_token: str | None = Header(default=None)):
 
 
 def do_retell_sync(publish: bool = True) -> dict:
-    """Überträgt Leitfaden, Auswertungsfelder und Webhook in den Retell-Agenten."""
+    """Überträgt Leitfaden, Auswertungsfelder und Webhook in den Retell-Agenten.
+
+    Veröffentlichte Versionen sind bei Retell schreibgeschützt. Deshalb wird bei Bedarf
+    zuerst ein Entwurf angelegt, dieser bearbeitet und anschließend veröffentlicht.
+    """
     if not bot.retell or not settings.retell_agent_id or not settings.public_base_url:
         return {"ok": False, "grund": "RETELL_API_KEY, RETELL_AGENT_ID oder PUBLIC_BASE_URL fehlt"}
-    agent = bot.retell.get_agent(settings.retell_agent_id)
+    rt, aid = bot.retell, settings.retell_agent_id
+    agent = rt.get_agent(aid)
+    if agent.get("is_published"):
+        agent = rt.create_agent_version(aid, int(agent["version"]))
     engine = agent.get("response_engine") or {}
     if engine.get("type") != "retell-llm":
         return {"ok": False, "grund": f"Agent nutzt '{engine.get('type')}', erwartet Single-Prompt (retell-llm)"}
-    llm = bot.retell.update_llm(engine["llm_id"], retell_agent.llm_update_body())
+    version = agent.get("version")
+    rt.update_llm(engine["llm_id"], retell_agent.llm_update_body(), version=engine.get("version"))
     body = retell_agent.agent_update_body(f"{settings.public_base_url}/webhook/retell")
-    if llm.get("version") is not None:
-        body["response_engine"] = {"type": "retell-llm", "llm_id": engine["llm_id"], "version": llm["version"]}
-    updated = bot.retell.update_agent(settings.retell_agent_id, body)
-    result = {"ok": True, "agent_version": updated.get("version")}
-    if publish and updated.get("version") is not None:
-        bot.retell.publish_agent(settings.retell_agent_id, int(updated["version"]))
+    updated = rt.update_agent(aid, body, version=version)
+    version = updated.get("version", version)
+    result = {"ok": True, "agent_version": version}
+    if publish and version is not None:
+        rt.publish_agent(aid, int(version))
         result["veroeffentlicht"] = True
     return result
 

@@ -134,13 +134,20 @@ class RetellClient:
         r.raise_for_status()
         return r.json()
 
-    def update_agent(self, agent_id: str, body: dict) -> dict:
-        r = self.http.patch(f"/update-agent/{agent_id}", json=body)
+    def update_agent(self, agent_id: str, body: dict, version: int | None = None) -> dict:
+        params = {"version": version} if version is not None else None
+        r = self.http.patch(f"/update-agent/{agent_id}", json=body, params=params)
         r.raise_for_status()
         return r.json()
 
-    def update_llm(self, llm_id: str, body: dict) -> dict:
-        r = self.http.patch(f"/update-retell-llm/{llm_id}", json=body)
+    def update_llm(self, llm_id: str, body: dict, version: int | None = None) -> dict:
+        params = {"version": version} if version is not None else None
+        r = self.http.patch(f"/update-retell-llm/{llm_id}", json=body, params=params)
+        r.raise_for_status()
+        return r.json()
+
+    def create_agent_version(self, agent_id: str, base_version: int) -> dict:
+        r = self.http.post(f"/create-agent-version/{agent_id}", json={"base_version": base_version})
         r.raise_for_status()
         return r.json()
 

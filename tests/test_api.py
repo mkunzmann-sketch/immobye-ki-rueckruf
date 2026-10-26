@@ -65,10 +65,16 @@ def test_retell_sync_updates_llm_agent_and_publishes(tmp_path):
     def handler(req):
         calls.append((req.method, req.url.path, json.loads(req.content) if req.content else None))
         if req.url.path.startswith("/get-agent/"):
-            return httpx.Response(200, json={"response_engine": {"type": "retell-llm", "llm_id": "llm1", "version": 0}})
+            return httpx.Response(200, json={"version": 4, "is_published": True,
+                                             "response_engine": {"type": "retell-llm", "llm_id": "llm1", "version": 4}})
+        if req.url.path.startswith("/create-agent-version/"):
+            return httpx.Response(201, json={"version": 5, "is_published": False,
+                                             "response_engine": {"type": "retell-llm", "llm_id": "llm1", "version": 5}})
         if req.url.path.startswith("/update-retell-llm/"):
-            return httpx.Response(200, json={"version": 3})
+            assert req.url.params.get("version") == "5"
+            return httpx.Response(200, json={"version": 5})
         if req.url.path.startswith("/update-agent/"):
+            assert req.url.params.get("version") == "5"
             return httpx.Response(200, json={"version": 5})
         return httpx.Response(200, json={})
 
@@ -79,7 +85,7 @@ def test_retell_sync_updates_llm_agent_and_publishes(tmp_path):
         res = main.do_retell_sync(publish=True)
     assert res == {"ok": True, "agent_version": 5, "veroeffentlicht": True}
     agent_body = [b for m, p, b in calls if p.startswith("/update-agent/")][0]
-    assert agent_body["response_engine"]["version"] == 3
+    assert ("POST", "/create-agent-version/agent_x", {"base_version": 4}) in calls
     assert agent_body["webhook_url"] == "https://bot.example/webhook/retell"
     assert ("POST", "/publish-agent-version/agent_x", {"version": 5}) in calls
     settings.retell_agent_id = ""
