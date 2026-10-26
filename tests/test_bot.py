@@ -368,3 +368,16 @@ def test_no_phone_in_test_mode_writes_nothing():
     bot.enqueue(activity_id=1, client_id=1, property_id=10, broker_id=7, created=MON10)
     assert bot.db.recent_jobs()[0]["status"] == "skipped"
     assert apis.posts == []
+
+
+def test_lenz_schwabing_interest_creates_task():
+    from app.logic import build_plan, CallWindow
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    now = datetime(2026, 10, 26, 10, 0, tzinfo=ZoneInfo("Europe/Berlin"))
+    plan = build_plan("interesse_ohne_termin", now=now, window=CallWindow(),
+                      data={"nutzung": "kapitalanlage", "lenz_schwabing_interesse": True})
+    assert any("Lenz Schwabing" in t.title for t in plan.tasks)
+    assert "Infos Lenz Schwabing gewünscht: ja" in plan.note_body
+    plan2 = build_plan("nicht_anrufen", now=now, window=CallWindow(), data={"lenz_schwabing_interesse": True})
+    assert not any("Lenz" in t.title for t in plan2.tasks)

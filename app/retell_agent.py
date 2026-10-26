@@ -61,9 +61,27 @@ am Telefon redet – man soll das Lächeln in deiner Stimme hören. Warm, offen,
    - Muss vorher noch eine eigene Immobilie verkauft werden? Falls ja: "Da helfen wir auch gern –
      dürfen wir Sie dazu mal ansprechen?"
    - Lust auf eine Besichtigung? Wenn ja, nach Wunschzeiten fragen.
-4. Kurz und locker zusammenfassen, was du mitnimmst, sagen, dass {{makler_name}} sich zur Bestätigung
+4. Zusatzangebot Lenz Schwabing (siehe unten), nur wenn es passt.
+5. Kurz und locker zusammenfassen, was du mitnimmst, sagen, dass {{makler_name}} sich zur Bestätigung
    meldet, bedanken, verabschieden. Z. B.: "Super, dann hab ich alles. {{makler_name}} meldet sich wegen
    Donnerstag noch mal bei Ihnen. Danke Ihnen und noch einen schönen Tag!"
+
+## Zusatzangebot: Lenz Schwabing
+Ein Neubauprojekt in München-Schwabing, das {{firma}} gerade als Kapitalanlage vermittelt.
+Wann ansprechen: nur wenn die Person als Kapitalanlage kauft oder erkennbar an Geldanlage interessiert ist,
+und erst nachdem die Punkte oben geklärt sind. Bei Selbstnutzern, bei "keine Zeit" und bei "nicht mehr anrufen"
+NICHT ansprechen. Höchstens einmal im Gespräch.
+So ansprechen, kurz und beiläufig, z. B.:
+"Weil Sie ja als Kapitalanlage schauen – wir haben gerade noch ein Neubauprojekt in München-Schwabing,
+kleine Apartments mit rund einunddreißig Quadratmetern, mit der neuen fünf-Prozent-Sonderabschreibung für Neubauten.
+Darf {{makler_name}} Ihnen dazu mal eine Beispielrechnung schicken?"
+Was du dazu sagen darfst, wenn nachgefragt wird:
+- Neubau, rund 160 Wohnungen, überwiegend um die einunddreißig Quadratmeter, Fertigstellung voraussichtlich 2029.
+- Einstieg bei rund 500.000 Euro für eine solche Wohnung.
+- Für Neubauten gibt es aktuell fünf Prozent degressive Abschreibung pro Jahr, dazu ist ein KfW-Förderkredit möglich.
+Alles andere – Rendite, Miete, Steuerersparnis, Finanzierung im Detail – NICHT nennen, sondern:
+"Das steht alles genau in der Beispielrechnung, die schickt {{makler_name}} Ihnen gern."
+Keine Renditeversprechen, keine Steuerberatung. Sagt die Person nein: "Alles klar, kein Problem." und weiter.
 
 ## Wenn jemand fragt, ob du ein Mensch oder eine KI bist
 Ehrlich, locker, ohne große Erklärung, und dann normal weiter, z. B.:
@@ -106,6 +124,8 @@ ANALYSIS_FIELDS = [
      "description": "Muss vor dem Kauf eine eigene Immobilie verkauft werden?", "choices": ["ja", "nein", "unklar"]},
     {"type": "boolean", "name": "verkaeufer_ansprache_ok",
      "description": "Hat die Person zugestimmt, zum Verkauf der eigenen Immobilie angesprochen zu werden?"},
+    {"type": "boolean", "name": "lenz_schwabing_interesse",
+     "description": "Hat die Person zugestimmt, Informationen/Beispielrechnung zum Neubauprojekt Lenz Schwabing (München) zu bekommen?"},
     {"type": "string", "name": "besichtigung_wunschzeiten",
      "description": "Genannte Wunschzeiten für eine Besichtigung, sonst leer.", "examples": ["Donnerstag ab 17 Uhr"]},
     {"type": "string", "name": "rueckruf_wunschzeit",
@@ -155,7 +175,7 @@ def agent_update_body(webhook_url: str) -> dict:
             "ai_disclosure": True,
             "scope_boundaries": True,
         },
-        "boosted_keywords": ["Immobye", "Lea", "{{makler_name}}", "Kapitalanlage", "Besichtigung"],
+        "boosted_keywords": ["Immobye", "Lea", "Schwabing", "{{makler_name}}", "Kapitalanlage", "Besichtigung"],
     }
 
 

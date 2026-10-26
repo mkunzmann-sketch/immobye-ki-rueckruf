@@ -238,6 +238,7 @@ FELD_LABELS = [
     ("eigene_immobilie_verkaufen", "Muss eigene Immobilie verkaufen"),
     ("verkaeufer_ansprache_ok", "Ansprache zum Verkauf der eigenen Immobilie ok"),
     ("kaufzeitraum", "Kaufzeitraum"),
+    ("lenz_schwabing_interesse", "Infos Lenz Schwabing gewünscht"),
     ("besichtigung_wunschzeiten", "Wunschzeiten Besichtigung"),
     ("rueckruf_wunschzeit", "Wunschzeit Rückruf"),
     ("sonstiges", "Sonstiges"),
@@ -319,6 +320,8 @@ def build_plan(
         if _truthy(data.get("verkaeufer_ansprache_ok")):
             plan.add_group_keys.append("group_verkaeufer_lead")
             plan.tasks.append(Task("Verkäufer-Lead: Interessent zur eigenen Immobilie ansprechen", window.task_due(now, 24)))
+        if _truthy(data.get("lenz_schwabing_interesse")):
+            plan.tasks.append(Task("Lenz Schwabing: Beispielrechnung an Interessent schicken", window.task_due(now, 24)))
     return plan
 
 
