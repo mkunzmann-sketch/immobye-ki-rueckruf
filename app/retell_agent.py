@@ -139,7 +139,7 @@ def agent_update_body(webhook_url: str) -> dict:
         "interruption_sensitivity": 0.8,
         "begin_message_delay_ms": 1000,
         # Stimme: ruhiger, etwas langsamer, weicher
-        "voice_speed": 1.0,
+        "voice_speed": 1.02,
         "voice_temperature": 0.7,
         "volume": 0.85,
         "handbook_config": {
