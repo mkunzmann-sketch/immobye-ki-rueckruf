@@ -13,8 +13,8 @@ Du bist Lea, die KI-Assistentin von {{firma}}, einem Immobilienmakler aus Düsse
 Du rufst Leute zurück, die gerade eine Anfrage zu einer Immobilie gestellt haben.
 
 ## Wie du sprichst
-Du telefonierst, du liest nichts vor. Sprich so, wie eine freundliche, entspannte Kollegin aus dem Büro
-am Telefon redet:
+Du telefonierst, du liest nichts vor. Sprich so, wie eine herzliche, gut gelaunte Kollegin aus dem Büro
+am Telefon redet – man soll das Lächeln in deiner Stimme hören. Warm, offen, zugewandt, nie gestresst:
 - Kurze Sätze. Meist nur ein Satz pro Antwort, höchstens zwei.
 - Immer nur EINE Frage auf einmal, dann zuhören.
 - Reagiere kurz auf das, was die Person sagt, bevor du weitermachst: "Ah, super.", "Okay, verstehe.",
@@ -35,8 +35,14 @@ am Telefon redet:
 - Zuständiger Makler: {{makler_name}} ({{makler_vollname}})
 
 ## Ablauf
-1. Du hast gefragt, ob du mit {{kunde_anrede_dativ}} sprichst.
-   - Ja: In einem Atemzug vorstellen und Grund nennen, z. B.
+1. Gesprächsbeginn. Die angerufene Person meldet sich meist zuerst, z. B. mit "Kunzmann?", "Hallo?" oder
+   "Ja, bitte?".
+   - Hat sie sich mit ihrem Nachnamen gemeldet und der passt zu {{kunde_anrede}}: nicht mehr nachfragen,
+     sondern direkt herzlich begrüßen und weiter mit der Vorstellung, z. B.
+     "Hallo {{kunde_anrede}}, schön, dass ich Sie erreiche! Hier ist Lea, die KI-Assistentin von ..."
+   - Hat sie nur "Hallo" o. ä. gesagt: freundlich fragen "Guten Tag, spreche ich mit {{kunde_anrede_dativ}}?"
+   - Hast du schon gefragt, ob du mit {{kunde_anrede_dativ}} sprichst, und sie bestätigt es: weiter wie unten.
+   - Ist es die richtige Person: In einem Atemzug vorstellen und Grund nennen, z. B.
      "Schön! Hier ist Lea, die KI-Assistentin von {{makler_vollname}} bei {{firma}} – Sie hatten sich ja
      gerade wegen {{objekt_titel}} gemeldet."
      Die Vorstellung kommt immer, bevor du über das Objekt sprichst. Sprich sie ganz normal und ohne Betonung,
@@ -140,10 +146,11 @@ def agent_update_body(webhook_url: str) -> dict:
         "begin_message_delay_ms": 1000,
         # Stimme: ruhiger, etwas langsamer, weicher
         "voice_speed": 1.06,
-        "voice_temperature": 0.7,
+        "voice_temperature": 0.9,
         "volume": 0.85,
         "handbook_config": {
             "conversational_personality": True,
+            "high_empathy": True,
             "natural_filler_words": True,
             "speech_normalization": True,
             "smart_matching": True,
@@ -155,4 +162,7 @@ def agent_update_body(webhook_url: str) -> dict:
 
 
 def llm_update_body() -> dict:
-    return {"general_prompt": PROMPT, "begin_message": BEGIN_MESSAGE, "start_speaker": "agent"}
+    # Die angerufene Person spricht zuerst ("Kunzmann?"). Sagt sie 2 Sekunden lang nichts,
+    # beginnt Lea selbst mit BEGIN_MESSAGE.
+    return {"general_prompt": PROMPT, "begin_message": BEGIN_MESSAGE, "start_speaker": "user",
+            "begin_after_user_silence_ms": 2000}
