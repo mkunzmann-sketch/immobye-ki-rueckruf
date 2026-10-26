@@ -63,6 +63,14 @@ def anrede(salutation: str | None, first: str | None, last: str | None, fallback
     return full or fallback
 
 
+def anrede_dativ(anrede_text: str) -> str:
+    """'Herr Meyer' -> 'Herrn Meyer' (für 'Spreche ich mit ...?'). 'Frau Weber' bleibt."""
+    t = (anrede_text or "").strip()
+    if t.startswith("Herr ") and not t.startswith("Herrn "):
+        return "Herrn " + t[5:]
+    return t
+
+
 # ---------------------------------------------------------------------------
 # Anrufzeiten
 # ---------------------------------------------------------------------------

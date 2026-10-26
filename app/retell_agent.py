@@ -5,7 +5,7 @@ Wird über POST /admin/retell-sync in den bestehenden Agenten
 Variablen in {{...}} setzt der Server pro Anruf ein.
 """
 
-BEGIN_MESSAGE = "Guten Tag, spreche ich mit {{kunde_anrede}}?"
+BEGIN_MESSAGE = "Guten Tag, spreche ich mit {{kunde_anrede_dativ}}?"
 
 PROMPT = """\
 ## Wer du bist
@@ -35,7 +35,7 @@ am Telefon redet:
 - Zuständiger Makler: {{makler_name}}
 
 ## Ablauf
-1. Du hast gefragt, ob du mit {{kunde_anrede}} sprichst.
+1. Du hast gefragt, ob du mit {{kunde_anrede_dativ}} sprichst.
    - Ja: In einem Atemzug vorstellen und Grund nennen, z. B.
      "Schön! Hier ist Lea von {{firma}}, die KI-Assistentin im Team – Sie hatten sich ja gerade wegen
      {{objekt_titel}} gemeldet."
@@ -137,7 +137,7 @@ def agent_update_body(webhook_url: str) -> dict:
         "enable_dynamic_responsiveness": True,
         "responsiveness": 0.9,
         "interruption_sensitivity": 0.8,
-        "begin_message_delay_ms": 600,
+        "begin_message_delay_ms": 1000,
         "handbook_config": {
             "conversational_personality": True,
             "natural_filler_words": True,

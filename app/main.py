@@ -29,6 +29,7 @@ from . import retell_agent
 from .clients import PropstackClient, RetellClient, verify_retell_signature
 from .config import settings
 from .db import DB
+from .logic import anrede_dativ
 from .worker import Bot
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -183,6 +184,8 @@ def do_retell_sync(publish: bool = True) -> dict:
     version = agent.get("version")
     rt.update_llm(engine["llm_id"], retell_agent.llm_update_body(), version=engine.get("version"))
     body = retell_agent.agent_update_body(f"{settings.public_base_url}/webhook/retell")
+    if settings.retell_voice_id:
+        body["voice_id"] = settings.retell_voice_id
     updated = rt.update_agent(aid, body, version=version)
     version = updated.get("version", version)
     result = {"ok": True, "agent_version": version}
@@ -270,7 +273,8 @@ def demo_anruf(token: str = Form(...), nummer: str = Form(...), kunde: str = For
     try:
         res = bot.retell.create_call(
             from_number=settings.retell_from_number, to_number=nummer, agent_id=settings.retell_agent_id,
-            variables={"kunde_anrede": kunde or "Herr Kunzmann", "kunde_name": kunde,
+            variables={"kunde_anrede": kunde or "Herr Kunzmann",
+                       "kunde_anrede_dativ": anrede_dativ(kunde or "Herr Kunzmann"), "kunde_name": kunde,
                        "objekt_titel": objekt or "Ihre Immobilienanfrage", "objekt_ort": "",
                        "makler_name": makler or "unser Team", "firma": settings.firma},
             metadata={"demo": True}, idempotency_key=f"demo-{int(time.time())}",

@@ -8,7 +8,7 @@ from .clients import PropstackClient, RetellClient
 from .config import Settings
 from .db import DB, iso, now_iso, parse_iso
 from .logic import (
-    CallWindow, anrede, build_plan, classify_call, next_attempt_at, pick_phone,
+    CallWindow, anrede, anrede_dativ, build_plan, classify_call, next_attempt_at, pick_phone,
 )
 
 log = logging.getLogger("rueckruf")
@@ -139,9 +139,11 @@ class Bot:
         unit = self.ps.unit(job["property_id"]) if job["property_id"] else {}
         broker_id = unit.get("broker_id") or job["broker_id"] or contact.get("broker_id") or self.s.default_broker_id
         broker = self.ps.broker(broker_id) or {}
+        kunde = anrede(contact.get("salutation"), contact.get("first_name"), contact.get("last_name"),
+                       contact.get("name") or "")
         variables = {
-            "kunde_anrede": anrede(contact.get("salutation"), contact.get("first_name"), contact.get("last_name"),
-                                   contact.get("name") or ""),
+            "kunde_anrede": kunde,
+            "kunde_anrede_dativ": anrede_dativ(kunde),
             "kunde_name": contact.get("name") or "",
             "objekt_titel": _title(unit) or "Ihre Immobilienanfrage",
             "objekt_ort": unit.get("city") or "",

@@ -105,6 +105,14 @@ def test_pick_phone_prefers_mobile():
     assert pick_phone({"office_phone": "kaputt"}) is None
 
 
+def test_anrede_dativ():
+    from app.logic import anrede_dativ
+    assert anrede_dativ("Herr Kunzmann") == "Herrn Kunzmann"
+    assert anrede_dativ("Herrn Kunzmann") == "Herrn Kunzmann"
+    assert anrede_dativ("Frau Weber") == "Frau Weber"
+    assert anrede_dativ("Tom Meyer") == "Tom Meyer"
+
+
 def test_anrede():
     assert anrede("ms", "Anna", "Weber") == "Frau Weber"
     assert anrede("mr", "Tom", "Meyer") == "Herr Meyer"

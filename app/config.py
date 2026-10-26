@@ -43,6 +43,8 @@ class Settings:
     retell_base_url: str = field(default_factory=lambda: os.getenv("RETELL_BASE_URL", "https://api.retellai.com"))
     retell_agent_id: str = field(default_factory=lambda: os.getenv("RETELL_AGENT_ID", ""))
     retell_from_number: str = field(default_factory=lambda: os.getenv("RETELL_FROM_NUMBER", ""))
+    # Optional: Stimme des Agenten (Voice-ID aus Retell); leer = Stimme bleibt wie im Dashboard
+    retell_voice_id: str = field(default_factory=lambda: os.getenv("RETELL_VOICE_ID", ""))
 
     # Öffentliche Adresse des Servers (für den Retell-Webhook)
     public_base_url: str = field(default_factory=lambda: os.getenv("PUBLIC_BASE_URL", "").rstrip("/"))
