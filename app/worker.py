@@ -149,6 +149,8 @@ class Bot:
             "objekt_ort": unit.get("city") or "",
             "makler_name": anrede(broker.get("salutation"), broker.get("first_name"), broker.get("last_name"),
                                   broker.get("name") or "unser Team"),
+            "makler_vollname": (f"{broker.get('first_name') or ''} {broker.get('last_name') or ''}".strip()
+                                or broker.get("name") or "dem Team"),
             "firma": self.s.firma_gesprochen,
         }
         attempt = job["attempts"] + 1

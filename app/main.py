@@ -237,7 +237,8 @@ In Propstack wird dabei nichts geschrieben.</p>
 <label>Testnummer</label><select name="nummer">{optionen}</select>
 <label>Anrede im Gespräch</label><input name="kunde" value="Herr Kunzmann">
 <label>Objekt</label><input name="objekt" value="Helle 3-Zimmer-Wohnung in Wersten">
-<label>Makler</label><input name="makler" value="Herr Gottschalk">
+<label>Makler (Anrede)</label><input name="makler" value="Herr Gottschalk">
+<label>Makler (voller Name)</label><input name="makler_voll" value="Timon Gottschalk">
 <button type="submit">Jetzt anrufen</button></form>{meldung}
 <script>
 (function(){
@@ -263,7 +264,7 @@ def admin_page():
 
 @app.post("/admin/demo-anruf", response_class=HTMLResponse)
 def demo_anruf(token: str = Form(...), nummer: str = Form(...), kunde: str = Form(""), objekt: str = Form(""),
-               makler: str = Form("")):
+               makler: str = Form(""), makler_voll: str = Form("")):
     if not settings.admin_token or not hmac.compare_digest(token, settings.admin_token):
         return _admin_page("Admin-Token ist falsch.")
     if nummer not in settings.test_numbers:
@@ -276,7 +277,8 @@ def demo_anruf(token: str = Form(...), nummer: str = Form(...), kunde: str = For
             variables={"kunde_anrede": kunde or "Herr Kunzmann",
                        "kunde_anrede_dativ": anrede_dativ(kunde or "Herr Kunzmann"), "kunde_name": kunde,
                        "objekt_titel": objekt or "Ihre Immobilienanfrage", "objekt_ort": "",
-                       "makler_name": makler or "unser Team", "firma": settings.firma_gesprochen},
+                       "makler_name": makler or "unser Team", "makler_vollname": makler_voll or "Timon Gottschalk",
+                       "firma": settings.firma_gesprochen},
             metadata={"demo": True}, idempotency_key=f"demo-{int(time.time())}",
         )
     except Exception as e:  # noqa: BLE001
