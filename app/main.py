@@ -7,16 +7,22 @@ Endpunkte:
   GET  /admin/propstack-check  – Verbindungstest zu Propstack, listet Nutzer und Aktivitätstypen
   POST /admin/testanruf        – sofort einen bestimmten Kontakt anrufen (Testmodus: nur TEST_NUMBERS)
   POST /admin/retell-sync      – Leitfaden und Auswertungsfelder in den Retell-Agenten übertragen
+                                 (passiert auch automatisch beim Start)
+  GET  /admin                  – Testseite: Demo-Anruf an eine Nummer aus TEST_NUMBERS
 """
 from __future__ import annotations
 
 import asyncio
+import hmac
+import html
 import json
+import time
 import logging
 from contextlib import asynccontextmanager
 from datetime import timedelta
 
-from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request, Response
+from fastapi import BackgroundTasks, FastAPI, Form, Header, HTTPException, Request, Response
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from . import retell_agent
@@ -38,6 +44,7 @@ def build_bot() -> Bot:
 
 bot: Bot | None = None
 selfcheck: dict = {"status": "läuft noch"}
+retell_status: dict = {"status": "noch nicht abgeglichen"}
 
 
 def run_selfcheck() -> None:
@@ -77,6 +84,8 @@ async def lifespan(app: FastAPI):
     tasks = []
     if settings.propstack_api_key:
         tasks.append(asyncio.create_task(asyncio.to_thread(run_selfcheck)))
+    if settings.retell_api_key and settings.retell_agent_id and settings.public_base_url:
+        tasks.append(asyncio.create_task(asyncio.to_thread(run_retell_sync)))
     if problems:
         log.warning("Bot läuft NICHT automatisch – es fehlt: %s", "; ".join(problems))
     else:
@@ -98,7 +107,7 @@ def _admin(token: str | None):
 
 @app.get("/health")
 def health():
-    return {"ok": True, "mode": settings.mode, "fehlt": settings.problems(), "propstack": selfcheck}
+    return {"ok": True, "mode": settings.mode, "fehlt": settings.problems(), "propstack": selfcheck, "retell": retell_status}
 
 
 @app.post("/webhook/retell")
@@ -156,20 +165,104 @@ def testanruf(body: TestCall, x_admin_token: str | None = Header(default=None)):
     return {"gestartet": started, "auftrag": dict(bot.db.get_job(job_id))}
 
 
-@app.post("/admin/retell-sync")
-def retell_sync(publish: bool = False, x_admin_token: str | None = Header(default=None)):
-    _admin(x_admin_token)
+def do_retell_sync(publish: bool = True) -> dict:
+    """Überträgt Leitfaden, Auswertungsfelder und Webhook in den Retell-Agenten."""
     if not bot.retell or not settings.retell_agent_id or not settings.public_base_url:
-        raise HTTPException(400, "RETELL_API_KEY, RETELL_AGENT_ID und PUBLIC_BASE_URL werden benötigt")
+        return {"ok": False, "grund": "RETELL_API_KEY, RETELL_AGENT_ID oder PUBLIC_BASE_URL fehlt"}
     agent = bot.retell.get_agent(settings.retell_agent_id)
     engine = agent.get("response_engine") or {}
     if engine.get("type") != "retell-llm":
-        raise HTTPException(400, f"Agent nutzt '{engine.get('type')}', erwartet wird ein Single-Prompt-Agent (retell-llm)")
-    bot.retell.update_llm(engine["llm_id"], retell_agent.llm_update_body())
-    updated = bot.retell.update_agent(settings.retell_agent_id,
-                                      retell_agent.agent_update_body(f"{settings.public_base_url}/webhook/retell"))
-    result = {"aktualisiert": True, "version": updated.get("version")}
+        return {"ok": False, "grund": f"Agent nutzt '{engine.get('type')}', erwartet Single-Prompt (retell-llm)"}
+    llm = bot.retell.update_llm(engine["llm_id"], retell_agent.llm_update_body())
+    body = retell_agent.agent_update_body(f"{settings.public_base_url}/webhook/retell")
+    if llm.get("version") is not None:
+        body["response_engine"] = {"type": "retell-llm", "llm_id": engine["llm_id"], "version": llm["version"]}
+    updated = bot.retell.update_agent(settings.retell_agent_id, body)
+    result = {"ok": True, "agent_version": updated.get("version")}
     if publish and updated.get("version") is not None:
         bot.retell.publish_agent(settings.retell_agent_id, int(updated["version"]))
         result["veroeffentlicht"] = True
     return result
+
+
+def run_retell_sync() -> None:
+    global retell_status
+    try:
+        retell_status = do_retell_sync(publish=True)
+    except Exception as e:  # noqa: BLE001
+        code = getattr(getattr(e, "response", None), "status_code", None)
+        detail = ""
+        try:
+            detail = e.response.text[:200]  # type: ignore[attr-defined]
+        except Exception:  # noqa: BLE001
+            pass
+        retell_status = {"ok": False, "grund": f"Fehler {code or type(e).__name__} {detail}".strip()}
+    log.info("Retell-Abgleich: %s", retell_status)
+
+
+@app.post("/admin/retell-sync")
+def retell_sync(publish: bool = True, x_admin_token: str | None = Header(default=None)):
+    _admin(x_admin_token)
+    run_retell_sync()
+    return retell_status
+
+
+# ---------------------------------------------------------------------------
+# Testseite: Demo-Anruf an eine freigegebene Testnummer (ohne Propstack)
+# ---------------------------------------------------------------------------
+ADMIN_PAGE = """<!doctype html><html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>KI-Rückruf Test</title>
+<style>body{font-family:system-ui,sans-serif;max-width:520px;margin:40px auto;padding:0 16px;color:#1b2a41}
+h1{font-size:22px}label{display:block;margin:14px 0 4px;font-weight:600}
+input,select{width:100%;padding:10px;border:1px solid #c7d2e3;border-radius:8px;font-size:16px;box-sizing:border-box}
+button{margin-top:20px;width:100%;padding:12px;border:0;border-radius:8px;background:#1f4fd8;color:#fff;font-size:16px;cursor:pointer}
+.hint{color:#5b6b82;font-size:14px}.msg{margin-top:18px;padding:12px;border-radius:8px;background:#eef3ff}</style></head>
+<body><h1>Immobye KI-Rückruf – Testanruf</h1>
+<p class="hint">Ruft eine freigegebene Testnummer an, damit die Stimme und der Leitfaden geprüft werden können.
+In Propstack wird dabei nichts geschrieben.</p>
+<form method="post" action="/admin/demo-anruf">
+<label>Admin-Token</label><input name="token" type="password" required autocomplete="off">
+<label>Testnummer</label><select name="nummer">{optionen}</select>
+<label>Anrede im Gespräch</label><input name="kunde" value="Herr Kunzmann">
+<label>Objekt</label><input name="objekt" value="Helle 3-Zimmer-Wohnung in Wersten">
+<label>Makler</label><input name="makler" value="Herr Gottschalk">
+<button type="submit">Jetzt anrufen</button></form>{meldung}</body></html>"""
+
+
+def _admin_page(meldung: str = "") -> HTMLResponse:
+    opts = "".join(f"<option>{html.escape(n)}</option>" for n in settings.test_numbers) or "<option disabled>keine TEST_NUMBERS eingetragen</option>"
+    msg = f'<div class="msg">{html.escape(meldung)}</div>' if meldung else ""
+    return HTMLResponse(ADMIN_PAGE.replace("{optionen}", opts).replace("{meldung}", msg))
+
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_page():
+    return _admin_page()
+
+
+@app.post("/admin/demo-anruf", response_class=HTMLResponse)
+def demo_anruf(token: str = Form(...), nummer: str = Form(...), kunde: str = Form(""), objekt: str = Form(""),
+               makler: str = Form("")):
+    if not settings.admin_token or not hmac.compare_digest(token, settings.admin_token):
+        return _admin_page("Admin-Token ist falsch.")
+    if nummer not in settings.test_numbers:
+        return _admin_page("Diese Nummer ist nicht in TEST_NUMBERS freigegeben.")
+    if not bot.retell or not settings.retell_agent_id or not settings.retell_from_number:
+        return _admin_page("Retell ist noch nicht vollständig eingerichtet.")
+    try:
+        res = bot.retell.create_call(
+            from_number=settings.retell_from_number, to_number=nummer, agent_id=settings.retell_agent_id,
+            variables={"kunde_anrede": kunde or "Herr Kunzmann", "kunde_name": kunde,
+                       "objekt_titel": objekt or "Ihre Immobilienanfrage", "objekt_ort": "",
+                       "makler_name": makler or "unser Team", "firma": settings.firma},
+            metadata={"demo": True}, idempotency_key=f"demo-{int(time.time())}",
+        )
+    except Exception as e:  # noqa: BLE001
+        code = getattr(getattr(e, "response", None), "status_code", None)
+        detail = ""
+        try:
+            detail = e.response.text[:300]  # type: ignore[attr-defined]
+        except Exception:  # noqa: BLE001
+            pass
+        return _admin_page(f"Anruf fehlgeschlagen (Fehler {code}): {detail}")
+    return _admin_page(f"Anruf gestartet – Ihr Telefon sollte gleich klingeln. (Call-ID {res.get('call_id')})")

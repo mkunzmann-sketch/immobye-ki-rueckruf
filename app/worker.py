@@ -180,6 +180,9 @@ class Bot:
         if not self.db.mark_processed(f"analyzed:{call_id}"):
             return "doppelt"
         meta = call.get("metadata") or {}
+        if meta.get("demo"):
+            log.info("Demo-Anruf %s beendet: %s", call_id, (call.get("call_analysis") or {}).get("custom_analysis_data"))
+            return "demo"
         job = self.db.get_job(int(meta["job_id"])) if meta.get("job_id") else None
         job = job or self.db.job_by_call(call_id)
         if not job:
