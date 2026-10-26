@@ -98,8 +98,9 @@ class Bot:
             return skip("Merkmal 'KI: nicht anrufen'")
         phone = pick_phone(contact)
         if not phone:
-            self._note_only(client_id, property_id, "KI-Rückruf: keine gültige Telefonnummer",
-                            "Der KI-Assistent konnte nicht anrufen, weil keine gültige Telefonnummer hinterlegt ist.")
+            if self.s.mode == "live":
+                self._note_only(client_id, property_id, "KI-Rückruf: keine gültige Telefonnummer",
+                                "Der KI-Assistent konnte nicht anrufen, weil keine gültige Telefonnummer hinterlegt ist.")
             return skip("keine gültige Telefonnummer")
         if self.db.is_blocked(phone):
             return skip("Nummer auf interner Sperrliste", phone)

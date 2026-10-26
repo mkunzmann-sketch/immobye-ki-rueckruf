@@ -319,7 +319,7 @@ def test_skip_contact_with_merkmal_nicht_anrufen():
 
 
 def test_no_phone_writes_note_and_skips():
-    bot, apis, clock = make_bot(MON10)
+    bot, apis, clock = make_bot(MON10)  # live
     apis.contacts[1]["home_cell"] = None
     bot.enqueue(activity_id=1, client_id=1, property_id=10, broker_id=7, created=MON10)
     assert bot.db.recent_jobs()[0]["status"] == "skipped"
@@ -360,3 +360,11 @@ def test_parallel_limit():
     clock["now"] = MON10 + timedelta(minutes=6)
     assert bot.tick() == 1
     assert bot.tick() == 0  # erst wenn der erste fertig ist
+
+
+def test_no_phone_in_test_mode_writes_nothing():
+    bot, apis, clock = make_bot(MON10, mode="test", test_numbers=["+491700000000"])
+    apis.contacts[1]["home_cell"] = None
+    bot.enqueue(activity_id=1, client_id=1, property_id=10, broker_id=7, created=MON10)
+    assert bot.db.recent_jobs()[0]["status"] == "skipped"
+    assert apis.posts == []
