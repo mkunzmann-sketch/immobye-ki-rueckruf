@@ -44,7 +44,7 @@ class Settings:
     retell_agent_id: str = field(default_factory=lambda: os.getenv("RETELL_AGENT_ID", ""))
     retell_from_number: str = field(default_factory=lambda: os.getenv("RETELL_FROM_NUMBER", ""))
     # Optional: Stimme des Agenten (Voice-ID aus Retell); leer = Stimme bleibt wie im Dashboard
-    retell_voice_id: str = field(default_factory=lambda: os.getenv("RETELL_VOICE_ID", ""))
+    retell_voice_id: str = field(default_factory=lambda: os.getenv("RETELL_VOICE_ID", "custom_voice_93438b88ef5402fc6eedb54d0d"))  # Pauli (ElevenLabs)
 
     # Öffentliche Adresse des Servers (für den Retell-Webhook)
     public_base_url: str = field(default_factory=lambda: os.getenv("PUBLIC_BASE_URL", "").rstrip("/"))
@@ -74,6 +74,8 @@ class Settings:
     db_path: str = field(default_factory=lambda: os.getenv("DB_PATH", "data/rueckruf.sqlite3"))
 
     firma: str = field(default_factory=lambda: os.getenv("FIRMA_NAME", "Immobye"))
+    # So spricht die Stimme den Firmennamen aus ("Immo" + englisch "bye")
+    firma_gesprochen: str = field(default_factory=lambda: os.getenv("FIRMA_GESPROCHEN", "Immobai"))
 
     @property
     def dry(self) -> bool:

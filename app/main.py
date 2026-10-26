@@ -276,7 +276,7 @@ def demo_anruf(token: str = Form(...), nummer: str = Form(...), kunde: str = For
             variables={"kunde_anrede": kunde or "Herr Kunzmann",
                        "kunde_anrede_dativ": anrede_dativ(kunde or "Herr Kunzmann"), "kunde_name": kunde,
                        "objekt_titel": objekt or "Ihre Immobilienanfrage", "objekt_ort": "",
-                       "makler_name": makler or "unser Team", "firma": settings.firma},
+                       "makler_name": makler or "unser Team", "firma": settings.firma_gesprochen},
             metadata={"demo": True}, idempotency_key=f"demo-{int(time.time())}",
         )
     except Exception as e:  # noqa: BLE001

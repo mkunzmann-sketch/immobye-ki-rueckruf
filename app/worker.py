@@ -149,7 +149,7 @@ class Bot:
             "objekt_ort": unit.get("city") or "",
             "makler_name": anrede(broker.get("salutation"), broker.get("first_name"), broker.get("last_name"),
                                   broker.get("name") or "unser Team"),
-            "firma": self.s.firma,
+            "firma": self.s.firma_gesprochen,
         }
         attempt = job["attempts"] + 1
         if self.s.dry or not self.retell:

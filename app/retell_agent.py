@@ -138,6 +138,10 @@ def agent_update_body(webhook_url: str) -> dict:
         "responsiveness": 0.9,
         "interruption_sensitivity": 0.8,
         "begin_message_delay_ms": 1000,
+        # Stimme: ruhiger, etwas langsamer, weicher
+        "voice_speed": 0.85,
+        "voice_temperature": 0.7,
+        "volume": 0.85,
         "handbook_config": {
             "conversational_personality": True,
             "natural_filler_words": True,
