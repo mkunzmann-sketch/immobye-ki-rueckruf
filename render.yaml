@@ -1,0 +1,51 @@
+# Render-Bauplan: ein Webdienst mit kleiner Festplatte für die Datenbank.
+services:
+  - type: web
+    name: immobye-ki-rueckruf
+    runtime: python
+    region: frankfurt
+    plan: starter
+    numInstances: 1
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    disk:
+      name: daten
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: MODE
+        value: dry
+      - key: DB_PATH
+        value: /var/data/rueckruf.sqlite3
+      - key: TIMEZONE
+        value: Europe/Berlin
+      - key: PROPSTACK_GROUP_QUALIFIZIERT
+        value: "725637"
+      - key: PROPSTACK_GROUP_KEIN_INTERESSE
+        value: "725638"
+      - key: PROPSTACK_GROUP_NICHT_ANRUFEN
+        value: "725639"
+      - key: PROPSTACK_GROUP_FINANZIERUNG_OK
+        value: "725663"
+      - key: PROPSTACK_GROUP_VERKAEUFER_LEAD
+        value: "725664"
+      - key: ADMIN_TOKEN
+        generateValue: true
+      # Diese Werte werden in Render von Hand eingetragen (nie ins Repository):
+      - key: PROPSTACK_API_KEY
+        sync: false
+      - key: RETELL_API_KEY
+        sync: false
+      - key: RETELL_AGENT_ID
+        sync: false
+      - key: RETELL_FROM_NUMBER
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: TEST_NUMBERS
+        sync: false
+      - key: PROPSTACK_DEFAULT_BROKER_ID
+        sync: false
