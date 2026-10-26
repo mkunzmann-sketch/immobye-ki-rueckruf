@@ -228,12 +228,23 @@ button{margin-top:20px;width:100%;padding:12px;border:0;border-radius:8px;backgr
 <p class="hint">Ruft eine freigegebene Testnummer an, damit die Stimme und der Leitfaden geprüft werden können.
 In Propstack wird dabei nichts geschrieben.</p>
 <form method="post" action="/admin/demo-anruf">
-<label>Admin-Token</label><input name="token" type="password" required autocomplete="off">
+<label>Admin-Token</label><input id="token" name="token" type="password" required autocomplete="off">
+<label style="display:flex;gap:8px;align-items:center;font-weight:400;margin-top:8px">
+<input id="merken" type="checkbox" style="width:auto"> Auf diesem Gerät merken</label>
 <label>Testnummer</label><select name="nummer">{optionen}</select>
 <label>Anrede im Gespräch</label><input name="kunde" value="Herr Kunzmann">
 <label>Objekt</label><input name="objekt" value="Helle 3-Zimmer-Wohnung in Wersten">
 <label>Makler</label><input name="makler" value="Herr Gottschalk">
-<button type="submit">Jetzt anrufen</button></form>{meldung}</body></html>"""
+<button type="submit">Jetzt anrufen</button></form>{meldung}
+<script>
+(function(){
+  var K="immobye_rueckruf_admin_token", t=document.getElementById("token"), m=document.getElementById("merken");
+  try { var v=localStorage.getItem(K); if(v){ t.value=v; m.checked=true; } } catch(e) {}
+  document.querySelector("form").addEventListener("submit", function(){
+    try { if(m.checked){ localStorage.setItem(K, t.value); } else { localStorage.removeItem(K); } } catch(e) {}
+  });
+})();
+</script></body></html>"""
 
 
 def _admin_page(meldung: str = "") -> HTMLResponse:
