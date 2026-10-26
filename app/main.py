@@ -37,6 +37,27 @@ def build_bot() -> Bot:
 
 
 bot: Bot | None = None
+selfcheck: dict = {"status": "läuft noch"}
+
+
+def run_selfcheck() -> None:
+    """Prüft beim Start, ob Propstack mit dem Schlüssel erreichbar ist (ohne Kundendaten auszugeben)."""
+    global selfcheck
+    res: dict = {}
+
+    def probe(name, fn):
+        try:
+            res[name] = fn()
+        except Exception as e:  # noqa: BLE001
+            code = getattr(getattr(e, "response", None), "status_code", None)
+            res[name] = f"Fehler {code}" if code else f"Fehler: {type(e).__name__}"
+
+    probe("nutzer", lambda: len(bot.ps.brokers()))
+    probe("aktivitaetstypen", lambda: len(bot.ps.activity_types()))
+    probe("anfragen_7_tage", lambda: len(bot.ps.inquiries_since(bot.clock() - timedelta(days=7), max_pages=3)))
+    res["ok"] = all(isinstance(v, int) for v in res.values())
+    selfcheck = res
+    log.info("Propstack-Selbsttest: %s", res)
 
 
 async def _loop(name: str, fn, every: int):
@@ -54,6 +75,8 @@ async def lifespan(app: FastAPI):
     bot = build_bot()
     problems = settings.problems()
     tasks = []
+    if settings.propstack_api_key:
+        tasks.append(asyncio.create_task(asyncio.to_thread(run_selfcheck)))
     if problems:
         log.warning("Bot läuft NICHT automatisch – es fehlt: %s", "; ".join(problems))
     else:
@@ -75,7 +98,7 @@ def _admin(token: str | None):
 
 @app.get("/health")
 def health():
-    return {"ok": True, "mode": settings.mode, "fehlt": settings.problems()}
+    return {"ok": True, "mode": settings.mode, "fehlt": settings.problems(), "propstack": selfcheck}
 
 
 @app.post("/webhook/retell")
