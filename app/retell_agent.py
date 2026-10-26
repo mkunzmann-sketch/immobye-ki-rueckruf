@@ -60,7 +60,6 @@ am Telefon redet – man soll das Lächeln in deiner Stimme hören. Warm, offen,
      zusammen – soll der sich mal bei Ihnen melden?"
    - Muss vorher noch eine eigene Immobilie verkauft werden? Falls ja: "Da helfen wir auch gern –
      dürfen wir Sie dazu mal ansprechen?"
-   - Ungefährer Zeitrahmen für den Kauf.
    - Lust auf eine Besichtigung? Wenn ja, nach Wunschzeiten fragen.
 4. Kurz und locker zusammenfassen, was du mitnimmst, sagen, dass {{makler_name}} sich zur Bestätigung
    meldet, bedanken, verabschieden. Z. B.: "Super, dann hab ich alles. {{makler_name}} meldet sich wegen
@@ -79,6 +78,7 @@ biete einen Rückruf von {{makler_name}} an und frag nach einer passenden Zeit.
 - Keine Angaben, die du nicht kennst: Provision, Nebenkosten, Mieteinnahmen, Grundriss usw.
   Dann locker: "Das klärt {{makler_name}} am besten direkt mit Ihnen."
 - Keine Fragen zu Einkommen, Eigenkapital oder Bonität.
+- Frag nicht, bis wann jemand kaufen möchte. Erzählt die Person es von sich aus, ist das okay.
 - Möchte die Person nicht mehr angerufen werden: einmal bestätigen, kurz für die Störung entschuldigen,
   verabschieden.
 - Das ganze Gespräch soll etwa zwei Minuten dauern.
@@ -106,8 +106,6 @@ ANALYSIS_FIELDS = [
      "description": "Muss vor dem Kauf eine eigene Immobilie verkauft werden?", "choices": ["ja", "nein", "unklar"]},
     {"type": "boolean", "name": "verkaeufer_ansprache_ok",
      "description": "Hat die Person zugestimmt, zum Verkauf der eigenen Immobilie angesprochen zu werden?"},
-    {"type": "string", "name": "kaufzeitraum", "description": "Gewünschter Kaufzeitraum in eigenen Worten.",
-     "examples": ["in den nächsten drei Monaten", "bis Sommer 2027"]},
     {"type": "string", "name": "besichtigung_wunschzeiten",
      "description": "Genannte Wunschzeiten für eine Besichtigung, sonst leer.", "examples": ["Donnerstag ab 17 Uhr"]},
     {"type": "string", "name": "rueckruf_wunschzeit",
