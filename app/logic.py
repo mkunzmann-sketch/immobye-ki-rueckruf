@@ -273,6 +273,27 @@ def _fmt(v) -> str:
     return html.escape(str(WERT_TEXT.get(v, v)))
 
 
+# Ja/Nein-Felder, die nur Sinn ergeben, wenn das Thema im Gespräch dran war
+_NUR_WENN = {
+    "finanzierungspartner_ok": ("finanzierung", "offen"),
+    "verkaeufer_ansprache_ok": ("eigene_immobilie_verkaufen", "ja"),
+    "lenz_schwabing_interesse": ("nutzung", "kapitalanlage"),
+}
+
+
+def _zeigen(key: str, data: dict) -> bool:
+    """Nur Angaben in die Notiz, die im Gespräch wirklich geklärt wurden."""
+    v = data.get(key)
+    if v in (None, "", []):
+        return False
+    if isinstance(v, str) and v.strip().lower() == "unklar":
+        return False
+    if key in _NUR_WENN and not _truthy(v):
+        feld, wert = _NUR_WENN[key]
+        return str(data.get(feld, "")).strip().lower() == wert
+    return True
+
+
 def build_plan(
     ergebnis: str,
     *,
@@ -294,7 +315,7 @@ def build_plan(
     zeilen.append(f"Anrufversuche: {attempts}")
     if extra:
         zeilen.append(html.escape(extra))
-    angaben = [(label, data.get(key)) for key, label in FELD_LABELS if data.get(key) not in (None, "", [])]
+    angaben = [(label, data.get(key)) for key, label in FELD_LABELS if _zeigen(key, data)]
     if angaben:
         zeilen.append("<br><b>Angaben im Gespräch</b>")
         zeilen += [f"{html.escape(label)}: {_fmt(v)}" for label, v in angaben]

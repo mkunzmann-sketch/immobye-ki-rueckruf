@@ -381,3 +381,20 @@ def test_lenz_schwabing_interest_creates_task():
     assert "Infos Lenz Schwabing gewünscht: ja" in plan.note_body
     plan2 = build_plan("nicht_anrufen", now=now, window=CallWindow(), data={"lenz_schwabing_interesse": True})
     assert not any("Lenz" in t.title for t in plan2.tasks)
+
+
+def test_note_hides_unclear_and_undiscussed_fields():
+    from app.logic import build_plan, CallWindow
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    now = datetime(2026, 10, 26, 10, 0, tzinfo=ZoneInfo("Europe/Berlin"))
+    plan = build_plan("interesse_ohne_termin", now=now, window=CallWindow(), data={
+        "interesse_aktuell": "ja", "nutzung": "unklar", "finanzierung": "unklar",
+        "finanzierungspartner_ok": False, "eigene_immobilie_verkaufen": "unklar",
+        "verkaeufer_ansprache_ok": False})
+    body = plan.note_body
+    assert "Interesse noch aktuell: ja" in body
+    assert "unklar" not in body and "Finanzierungspartner" not in body and "Verkauf der eigenen" not in body
+    plan2 = build_plan("interesse_ohne_termin", now=now, window=CallWindow(), data={
+        "finanzierung": "offen", "finanzierungspartner_ok": False})
+    assert "Kontakt Finanzierungspartner gewünscht: nein" in plan2.note_body
