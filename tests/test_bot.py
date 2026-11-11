@@ -451,3 +451,23 @@ def test_prompt_has_both_parts():
     assert "{{gespraechsart}}" in PROMPT
     names = {f["name"] for f in ANALYSIS_FIELDS}
     assert {"immobilien_im_bestand", "preisrahmen_passt", "beratung_wunschzeiten"} <= names
+
+
+def test_bestand_call_with_schwabing_pitch_goes_to_schwabing_broker():
+    bot, apis, clock = make_bot(MON10)
+    bot.s.schwabing_broker_id = 99
+    bot.poll_inquiries()
+    apis.inquiries = [_inquiry(created=MON10 + timedelta(minutes=1))]
+    clock["now"] = MON10 + timedelta(minutes=7)
+    bot.poll_inquiries()
+    bot.tick()
+    job = bot.db.recent_jobs()[0]
+    bot.handle_call(call_payload("call1", job["id"], data={
+        "ergebnis": "qualifiziert", "nutzung": "selbstnutzung", "lenz_schwabing_angesprochen": True,
+        "lenz_schwabing_interesse": True, "beratung_wunschzeiten": "Freitag 10 Uhr"}))
+    tasks = {p["task"]["title"]: p["task"].get("broker_id") for p in apis.posts if p["task"].get("is_reminder")}
+    assert tasks["Lenz Schwabing: Beratungsgespräch vereinbaren"] == 99
+    assert tasks["Lenz Schwabing: Beispielrechnung an Interessent schicken"] == 99
+    assert tasks["Rückruf Interessent – Qualifiziert – Besichtigung gewünscht"] == 7
+    body = [p for p in apis.posts if not p["task"].get("is_reminder")][0]["task"]["body"]
+    assert "Infos Lenz Schwabing gewünscht: ja" in body and "Lenz Schwabing vorgestellt: ja" in body

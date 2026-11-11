@@ -238,6 +238,7 @@ FELD_LABELS = [
     ("eigene_immobilie_verkaufen", "Muss eigene Immobilie verkaufen"),
     ("verkaeufer_ansprache_ok", "Ansprache zum Verkauf der eigenen Immobilie ok"),
     ("kaufzeitraum", "Kaufzeitraum"),
+    ("lenz_schwabing_angesprochen", "Lenz Schwabing vorgestellt"),
     ("lenz_schwabing_interesse", "Infos Lenz Schwabing gewünscht"),
     ("immobilien_im_bestand", "Hat schon vermietete Immobilien"),
     ("preisrahmen_passt", "Preisrahmen ca. 500.000 € (5 % EK + NK) passt"),
@@ -371,6 +372,9 @@ def build_plan(
             plan.tasks.append(Task("Verkäufer-Lead: Interessent zur eigenen Immobilie ansprechen", window.task_due(now, 24)))
         if _truthy(data.get("lenz_schwabing_interesse")):
             plan.tasks.append(Task("Lenz Schwabing: Beispielrechnung an Interessent schicken", window.task_due(now, 24)))
+        # Beratungswunsch zu Schwabing aus einem Bestandsgespräch (im Schwabing-Gespräch gibt es die Aufgabe schon)
+        if not (schwabing and ergebnis == "qualifiziert") and str(data.get("beratung_wunschzeiten") or "").strip():
+            plan.tasks.append(Task("Lenz Schwabing: Beratungsgespräch vereinbaren", window.task_due(now, 24)))
     return plan
 
 

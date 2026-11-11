@@ -231,8 +231,11 @@ class Bot:
                             note_type_id=self.s.note_type_id)
         broker_id = job["broker_id"] or self.s.default_broker_id or None
         for t in plan.tasks:
+            zustaendig = broker_id
+            if t.title.startswith("Lenz Schwabing") and self.s.schwabing_broker_id:
+                zustaendig = self.s.schwabing_broker_id
             self.ps.create_task(title=t.title, body=plan.note_body, due=t.due, client_id=cid, property_id=pid,
-                                broker_id=broker_id, note_type_id=self.s.task_type_id)
+                                broker_id=zustaendig, note_type_id=self.s.task_type_id)
         groups = [getattr(self.s, k) for k in plan.add_group_keys]
         self.ps.add_groups(cid, groups)
         if plan.block_number and job["phone"]:
