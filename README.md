@@ -39,6 +39,18 @@ Beispielrechnung. Erkannt wird das Projekt am Objekttitel (enthält „Lenz“ u
 „Lenz Schwabing: Beratungsgespräch vereinbaren“ und „Lenz Schwabing: Beispielrechnung an Interessent schicken“ –
 zugewiesen an den Betreuer des Objekts. Auf der Testseite `/admin` lässt sich die Gesprächsart auswählen.
 
+## Kampagne (Kontakte mit Einwilligung)
+
+Für Lenz Schwabing ruft Lea zusätzlich Kontakte an, die ausdrücklich in Telefonwerbung eingewilligt haben.
+- `POST /admin/kampagne/import` mit `{"client_ids": [...]}` (Propstack-Kontakt-IDs) nimmt Kontakte in die Liste auf.
+- Start/Pause über die Testseite `/admin` oder `POST /admin/kampagne/start` bzw. `/pause` (Standard: pausiert).
+- Pro Tag höchstens `KAMPAGNE_TAGESLIMIT` neue Kontakte (Standard 50), immer nur `KAMPAGNE_PUFFER` (3) auf
+  einmal, damit Rückrufe auf echte Anfragen Vorrang haben. Gleiche Prüfungen wie bei Anfragen (Sperrliste,
+  Merkmal „KI: nicht anrufen“, archiviert, DSGVO widerrufen, Testmodus).
+- Gespräch nach TEIL B des Leitfadens, Lea als Assistentin von Marco Kunzmann (`SCHWABING_BROKER_ID`),
+  Notizen am Objekt `KAMPAGNE_OBJEKT_ID`, sobald gesetzt.
+- `/health` zeigt den Stand der Kampagne und die Retell-Kosten des Monats.
+
 ## Betriebsarten (`MODE`)
 
 - `dry` – holt Anfragen und protokolliert, ruft niemanden an, schreibt nichts nach Propstack.

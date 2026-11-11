@@ -58,6 +58,11 @@ class Settings:
     # Propstack-Nutzer, der Aufgaben zu Lenz Schwabing bekommt ; per Umgebungsvariable änderbar
     schwabing_broker_id: int = field(default_factory=lambda: _int("SCHWABING_BROKER_ID", 208152))  # Marco Kunzmann
 
+    # Kampagne (z. B. Lenz Schwabing an Kontakte mit Einwilligung): neue Kontakte pro Tag und Propstack-Objekt
+    kampagne_tageslimit: int = field(default_factory=lambda: _int("KAMPAGNE_TAGESLIMIT", 50))
+    kampagne_objekt_id: int = field(default_factory=lambda: _int("KAMPAGNE_OBJEKT_ID", 0))
+    kampagne_puffer: int = field(default_factory=lambda: _int("KAMPAGNE_PUFFER", 3))
+
     # Testmodus: nur diese Nummern werden angerufen (E.164, kommagetrennt)
     test_numbers: list[str] = field(default_factory=lambda: _list("TEST_NUMBERS"))
 

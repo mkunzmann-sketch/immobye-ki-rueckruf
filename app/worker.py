@@ -8,7 +8,7 @@ from .clients import PropstackClient, RetellClient
 from .config import Settings
 from .db import DB, iso, now_iso, parse_iso
 from .logic import (
-    CallWindow, anrede, anrede_dativ, build_plan, classify_call, gespraechsart, next_attempt_at, pick_phone,
+    SCHWABING, CallWindow, anrede, anrede_dativ, build_plan, classify_call, gespraechsart, next_attempt_at, pick_phone,
 )
 
 log = logging.getLogger("rueckruf")
@@ -26,6 +26,13 @@ def _title(unit: dict) -> str:
     if isinstance(t, dict):
         t = t.get("value")
     return (t or unit.get("short_address") or unit.get("name") or "").strip()
+
+
+def _art(job) -> str | None:
+    try:
+        return job["art"]
+    except (IndexError, KeyError):
+        return None
 
 
 def _group_ids(contact: dict) -> set[int]:
@@ -80,12 +87,13 @@ class Bot:
                      broker_id=it.get("broker_id"), created=created)
         return True
 
-    def enqueue(self, *, activity_id, client_id, property_id, broker_id, created: datetime, force: bool = False) -> int:
+    def enqueue(self, *, activity_id, client_id, property_id, broker_id, created: datetime, force: bool = False,
+                art: str | None = None) -> int:
         """Prüft, ob angerufen werden darf, und legt den Auftrag an."""
         def skip(reason: str, phone=None) -> int:
-            log.info("Anfrage %s übersprungen: %s", activity_id, reason)
+            log.info("Anfrage %s / Kontakt %s übersprungen: %s", activity_id, client_id, reason)
             return self.db.add_job(activity_id=activity_id, client_id=client_id, property_id=property_id,
-                                   broker_id=broker_id, phone=phone, status="skipped", note=reason)
+                                   broker_id=broker_id, phone=phone, status="skipped", note=reason, art=art)
 
         if not force and self.db.talked_before(client_id, property_id):
             return skip("bereits angerufen bzw. Auftrag läuft")
@@ -113,7 +121,55 @@ class Bot:
             # Wartezeit zählt ab Eingang der Anfrage
             when = self.window.next_open(max(created + timedelta(minutes=self.s.inquiry_delay_min), self.clock()))
         return self.db.add_job(activity_id=activity_id, client_id=client_id, property_id=property_id,
-                               broker_id=broker_id, phone=phone, status="pending", next_attempt_at=iso(when))
+                               broker_id=broker_id, phone=phone, status="pending", next_attempt_at=iso(when), art=art)
+
+    # ------------------------------------------------------------------
+    # 1b) Kampagne: Kontakte aus der Liste nach und nach einplanen
+    # ------------------------------------------------------------------
+    def kampagne_aktiv(self) -> bool:
+        return self.db.get_state("kampagne_aktiv") == "1"
+
+    def set_kampagne_aktiv(self, aktiv: bool) -> None:
+        self.db.set_state("kampagne_aktiv", "1" if aktiv else "0")
+
+    def _tagesbeginn(self, now: datetime) -> datetime:
+        local = now.astimezone(self.window.zone)
+        return local.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    def feed_campaign(self) -> int:
+        """Plant bis zum Tageslimit neue Kampagnen-Kontakte ein, immer nur wenige auf einmal,
+        damit Rückrufe auf echte Anfragen nicht warten müssen."""
+        if not self.kampagne_aktiv():
+            return 0
+        now = self.clock()
+        if not self.window.is_open(now):
+            return 0
+        heute = self.db.kampagne_planned_since(iso(self._tagesbeginn(now)))
+        frei = min(self.s.kampagne_tageslimit - heute, self.s.kampagne_puffer - self.db.kampagne_open_jobs())
+        if frei <= 0:
+            return 0
+        eingeplant = 0
+        for row in self.db.kampagne_next(frei * 4):
+            if eingeplant >= frei:
+                break
+            cid = row["client_id"]
+            try:
+                job_id = self.enqueue(activity_id=None, client_id=cid, property_id=self.s.kampagne_objekt_id or None,
+                                      broker_id=self.s.schwabing_broker_id or None, created=now - timedelta(minutes=10),
+                                      art=SCHWABING)
+            except Exception as e:  # noqa: BLE001
+                log.warning("Kampagne: Kontakt %s nicht einplanbar: %s", cid, e)
+                self.db.kampagne_mark(cid, "uebersprungen", note=f"Fehler: {e}"[:200], at=iso(now))
+                continue
+            job = self.db.get_job(job_id)
+            if job["status"] == "skipped":
+                self.db.kampagne_mark(cid, "uebersprungen", job_id, job["note"], at=iso(now))
+            else:
+                self.db.kampagne_mark(cid, "eingeplant", job_id, at=iso(now))
+                eingeplant += 1
+        if eingeplant:
+            log.info("Kampagne: %s Kontakte eingeplant (heute bisher %s)", eingeplant, heute + eingeplant)
+        return eingeplant
 
     # ------------------------------------------------------------------
     # 2) Fällige Anrufe starten
@@ -138,7 +194,10 @@ class Bot:
             self.db.update_job(job["id"], status="skipped", note="vor dem Anruf gesperrt")
             return False
         unit = self.ps.unit(job["property_id"]) if job["property_id"] else {}
+        art = _art(job) or gespraechsart(unit, job["property_id"], self.s.schwabing_property_ids)
         broker_id = unit.get("broker_id") or job["broker_id"] or contact.get("broker_id") or self.s.default_broker_id
+        if art == SCHWABING and self.s.schwabing_broker_id:
+            broker_id = self.s.schwabing_broker_id
         broker = self.ps.broker(broker_id) or {}
         kunde = anrede(contact.get("salutation"), contact.get("first_name"), contact.get("last_name"),
                        contact.get("name") or "")
@@ -146,14 +205,14 @@ class Bot:
             "kunde_anrede": kunde,
             "kunde_anrede_dativ": anrede_dativ(kunde),
             "kunde_name": contact.get("name") or "",
-            "objekt_titel": _title(unit) or "Ihre Immobilienanfrage",
+            "objekt_titel": _title(unit) or ("Lenz Schwabing" if art == SCHWABING else "Ihre Immobilienanfrage"),
             "objekt_ort": unit.get("city") or "",
             "makler_name": anrede(broker.get("salutation"), broker.get("first_name"), broker.get("last_name"),
                                   broker.get("name") or "unser Team"),
             "makler_vollname": (f"{broker.get('first_name') or ''} {broker.get('last_name') or ''}".strip()
                                 or broker.get("name") or "dem Team"),
             "firma": self.s.firma_gesprochen,
-            "gespraechsart": gespraechsart(unit, job["property_id"], self.s.schwabing_property_ids),
+            "gespraechsart": art,
         }
         attempt = job["attempts"] + 1
         if self.s.dry or not self.retell:
@@ -185,6 +244,12 @@ class Bot:
         call_id = call.get("call_id") or ""
         if not self.db.mark_processed(f"analyzed:{call_id}"):
             return "doppelt"
+        try:
+            cents = float(((call.get("call_cost") or {}).get("combined_cost")) or 0)
+            if cents:
+                self.db.add_cost(self.clock().strftime("%Y-%m"), cents)
+        except (TypeError, ValueError):
+            pass
         meta = call.get("metadata") or {}
         if meta.get("demo"):
             log.info("Demo-Anruf %s beendet: %s", call_id, (call.get("call_analysis") or {}).get("custom_analysis_data"))
@@ -223,7 +288,9 @@ class Bot:
                 objekt = _title(unit)
         except Exception:  # noqa: BLE001
             pass
-        art = gespraechsart(unit, job["property_id"], self.s.schwabing_property_ids)
+        art = _art(job) or gespraechsart(unit, job["property_id"], self.s.schwabing_property_ids)
+        if art == SCHWABING and not objekt:
+            objekt = "Lenz Schwabing (Kampagne)"
         plan = build_plan(ergebnis, now=self.clock(), window=self.window, data=data, summary=summary,
                           objekt=objekt, attempts=job["attempts"], extra=extra, art=art)
         cid, pid = job["client_id"], job["property_id"]

@@ -32,6 +32,17 @@ CREATE INDEX IF NOT EXISTS jobs_client_prop ON jobs(client_id, property_id);
 CREATE TABLE IF NOT EXISTS blocklist (phone TEXT PRIMARY KEY, client_id INTEGER, created_at TEXT);
 
 CREATE TABLE IF NOT EXISTS processed (key TEXT PRIMARY KEY, created_at TEXT);
+
+-- Kampagne: Kontakte mit Einwilligung, die Lea nacheinander anruft
+CREATE TABLE IF NOT EXISTS kampagne (
+    client_id INTEGER PRIMARY KEY,
+    status TEXT NOT NULL,          -- offen | eingeplant | uebersprungen
+    job_id INTEGER,
+    note TEXT,
+    added_at TEXT NOT NULL,
+    planned_at TEXT
+);
+CREATE INDEX IF NOT EXISTS kampagne_status ON kampagne(status, added_at);
 """
 
 
@@ -58,6 +69,10 @@ class DB:
         self.conn.row_factory = sqlite3.Row
         self.lock = threading.RLock()
         self.conn.executescript(SCHEMA)
+        try:  # Spalte für die Gesprächsart nachrüsten (ältere Datenbanken)
+            self.conn.execute("ALTER TABLE jobs ADD COLUMN art TEXT")
+        except sqlite3.OperationalError:
+            pass
 
     def q(self, sql: str, args: tuple = ()) -> list[sqlite3.Row]:
         with self.lock:
@@ -93,12 +108,13 @@ class DB:
                 return True
         return False
 
-    def add_job(self, *, activity_id, client_id, property_id, broker_id, phone, status, next_attempt_at=None, note=None) -> int:
+    def add_job(self, *, activity_id, client_id, property_id, broker_id, phone, status, next_attempt_at=None, note=None,
+                art=None) -> int:
         ts = now_iso()
         return self.x(
-            """INSERT INTO jobs(activity_id,client_id,property_id,broker_id,phone,status,next_attempt_at,note,created_at,updated_at)
-               VALUES(?,?,?,?,?,?,?,?,?,?)""",
-            (activity_id, client_id, property_id, broker_id, phone, status, next_attempt_at, note, ts, ts),
+            """INSERT INTO jobs(activity_id,client_id,property_id,broker_id,phone,status,next_attempt_at,note,created_at,updated_at,art)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+            (activity_id, client_id, property_id, broker_id, phone, status, next_attempt_at, note, ts, ts, art),
         )
 
     def update_job(self, job_id: int, **fields) -> None:
@@ -132,6 +148,49 @@ class DB:
 
     def block(self, phone: str, client_id: int | None) -> None:
         self.x("INSERT OR IGNORE INTO blocklist(phone,client_id,created_at) VALUES(?,?,?)", (phone, client_id, now_iso()))
+
+    # --- Kampagne -------------------------------------------------------------
+    def kampagne_add(self, client_ids: list[int]) -> int:
+        neu = 0
+        ts = now_iso()
+        with self.lock:
+            for cid in client_ids:
+                cur = self.conn.execute(
+                    "INSERT OR IGNORE INTO kampagne(client_id,status,added_at) VALUES(?,?,?)", (int(cid), "offen", ts))
+                neu += cur.rowcount
+        return neu
+
+    def kampagne_next(self, limit: int):
+        return self.q("SELECT * FROM kampagne WHERE status='offen' ORDER BY added_at, client_id LIMIT ?", (limit,))
+
+    def kampagne_mark(self, client_id: int, status: str, job_id: int | None = None, note: str | None = None,
+                      at: str | None = None) -> None:
+        self.x("UPDATE kampagne SET status=?, job_id=?, note=?, planned_at=? WHERE client_id=?",
+               (status, job_id, note, at or now_iso(), client_id))
+
+    def kampagne_planned_since(self, since: str) -> int:
+        return self.q("SELECT COUNT(*) n FROM kampagne WHERE status='eingeplant' AND planned_at>=?", (since,))[0]["n"]
+
+    def kampagne_open_jobs(self) -> int:
+        return self.q("""SELECT COUNT(*) n FROM jobs j JOIN kampagne k ON k.job_id=j.id
+                         WHERE j.status IN ('pending','calling') AND j.attempts=0""")[0]["n"]
+
+    def kampagne_stats(self) -> dict:
+        out = {r["status"]: r["n"] for r in self.q("SELECT status, COUNT(*) n FROM kampagne GROUP BY status")}
+        for r in self.q("""SELECT IFNULL(j.outcome, j.status) erg, COUNT(*) n FROM kampagne k JOIN jobs j ON j.id=k.job_id
+                           WHERE k.status='eingeplant' GROUP BY erg"""):
+            out[f"ergebnis_{r['erg']}"] = r["n"]
+        return out
+
+    # --- Kosten (laut Retell) -------------------------------------------------
+    def add_cost(self, month: str, cents: float) -> None:
+        key = f"kosten_cent_{month}"
+        with self.lock:
+            cur = float(self.get_state(key) or 0)
+            self.set_state(key, str(cur + cents))
+
+    def cost(self, month: str) -> float:
+        return float(self.get_state(f"kosten_cent_{month}") or 0)
 
     # --- Webhook-Deduplizierung ---------------------------------------------
     def mark_processed(self, key: str) -> bool:

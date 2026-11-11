@@ -471,3 +471,62 @@ def test_bestand_call_with_schwabing_pitch_goes_to_schwabing_broker():
     assert tasks["Rückruf Interessent – Qualifiziert – Besichtigung gewünscht"] == 7
     body = [p for p in apis.posts if not p["task"].get("is_reminder")][0]["task"]["body"]
     assert "Infos Lenz Schwabing gewünscht: ja" in body and "Lenz Schwabing vorgestellt: ja" in body
+
+
+# ---------------------------------------------------------------------------
+# Kampagne
+# ---------------------------------------------------------------------------
+def _kampagne_bot(n=6, **kw):
+    bot, apis, clock = make_bot(MON10, **kw)
+    for i in range(2, 2 + n):
+        apis.contacts[i] = {"id": i, "salutation": "mr", "first_name": "K", "last_name": f"Kunde{i}",
+                            "name": f"K Kunde{i}", "home_cell": f"0151 1234567{i}", "groups": []}
+    apis.brokers.append({"id": 208152, "salutation": "mr", "first_name": "Marco", "last_name": "Kunzmann",
+                         "name": "Marco Kunzmann"})
+    bot.s.schwabing_broker_id = 208152
+    bot.db.kampagne_add(list(range(2, 2 + n)))
+    return bot, apis, clock
+
+
+def test_kampagne_paused_does_nothing():
+    bot, apis, clock = _kampagne_bot()
+    assert bot.feed_campaign() == 0
+
+
+def test_kampagne_buffer_daily_limit_and_schwabing_call():
+    bot, apis, clock = _kampagne_bot(n=6)
+    bot.s.kampagne_tageslimit = 4
+    bot.s.kampagne_puffer = 3
+    bot.set_kampagne_aktiv(True)
+    assert bot.feed_campaign() == 3          # Puffer
+    assert bot.feed_campaign() == 0          # Puffer voll
+    assert bot.tick() == 1
+    call = apis.calls[0]
+    v = call["retell_llm_dynamic_variables"]
+    assert v["gespraechsart"] == "neubau_schwabing" and v["makler_vollname"] == "Marco Kunzmann"
+    job = [j for j in bot.db.recent_jobs() if j["status"] == "calling"][0]
+    bot.handle_call(call_payload("call1", job["id"], data={"ergebnis": "kein_interesse"}))
+    assert bot.feed_campaign() == 1          # Tageslimit 4 erreicht
+    assert bot.feed_campaign() == 0
+    clock["now"] = MON10 + timedelta(days=1)
+    for j in bot.db.recent_jobs():
+        if j["status"] in ("pending", "calling"):
+            bot.db.update_job(j["id"], status="done", outcome="kein_interesse")
+    assert bot.feed_campaign() == 2          # neuer Tag, Rest der Liste
+    stats = bot.db.kampagne_stats()
+    assert stats["eingeplant"] == 6 and stats.get("offen", 0) == 0
+
+
+def test_kampagne_test_mode_skips_unlisted_numbers():
+    bot, apis, clock = _kampagne_bot(n=2, mode="test", test_numbers=["+4915112345672"])
+    bot.set_kampagne_aktiv(True)
+    assert bot.feed_campaign() == 1
+    stats = bot.db.kampagne_stats()
+    assert stats["eingeplant"] == 1 and stats["uebersprungen"] == 1
+
+
+def test_kampagne_import_ignores_duplicates_and_tracks_cost():
+    bot, apis, clock = _kampagne_bot(n=2)
+    assert bot.db.kampagne_add([2, 3, 99]) == 1
+    bot.handle_call({"call_id": "x", "metadata": {"demo": True}, "call_cost": {"combined_cost": 27.2}})
+    assert round(bot.db.cost("2026-10"), 1) == 27.2

@@ -93,6 +93,7 @@ async def lifespan(app: FastAPI):
         log.info("Bot startet im Modus '%s'", settings.mode)
         tasks.append(asyncio.create_task(_loop("Anfragen", bot.poll_inquiries, settings.poll_interval_sec)))
         tasks.append(asyncio.create_task(_loop("Anrufe", bot.tick, settings.tick_interval_sec)))
+        tasks.append(asyncio.create_task(_loop("Kampagne", bot.feed_campaign, 120)))
     yield
     for t in tasks:
         t.cancel()
@@ -106,9 +107,39 @@ def _admin(token: str | None):
         raise HTTPException(status_code=401, detail="Admin-Token fehlt oder falsch")
 
 
+def _kampagne_info() -> dict:
+    if not bot:
+        return {}
+    monat = bot.clock().strftime("%Y-%m")
+    return {"aktiv": bot.kampagne_aktiv(), "tageslimit": settings.kampagne_tageslimit, **bot.db.kampagne_stats(),
+            "retell_kosten_usd_monat": round(bot.db.cost(monat) / 100, 2)}
+
+
 @app.get("/health")
 def health():
-    return {"ok": True, "mode": settings.mode, "fehlt": settings.problems(), "propstack": selfcheck, "retell": retell_status}
+    return {"ok": True, "mode": settings.mode, "fehlt": settings.problems(), "propstack": selfcheck,
+            "retell": retell_status, "kampagne": _kampagne_info()}
+
+
+class KampagneImport(BaseModel):
+    client_ids: list[int]
+
+
+@app.post("/admin/kampagne/import")
+def kampagne_import(body: KampagneImport, x_admin_token: str | None = Header(default=None)):
+    """Propstack-Kontakt-IDs mit Einwilligung in die Kampagnenliste aufnehmen (doppelte werden ignoriert)."""
+    _admin(x_admin_token)
+    neu = bot.db.kampagne_add(body.client_ids)
+    return {"neu": neu, **_kampagne_info()}
+
+
+@app.post("/admin/kampagne/{aktion}")
+def kampagne_schalter(aktion: str, x_admin_token: str | None = Header(default=None)):
+    _admin(x_admin_token)
+    if aktion not in ("start", "pause"):
+        raise HTTPException(status_code=404, detail="start oder pause")
+    bot.set_kampagne_aktiv(aktion == "start")
+    return _kampagne_info()
 
 
 @app.post("/webhook/retell")
@@ -242,10 +273,16 @@ In Propstack wird dabei nichts geschrieben.</p>
 <label>Makler (Anrede)</label><input name="makler" id="makler" value="Herr Gottschalk">
 <label>Makler (voller Name)</label><input name="makler_voll" id="makler_voll" value="Timon Gottschalk">
 <button type="submit">Jetzt anrufen</button></form>{meldung}
+<h1 style="margin-top:40px">Kampagne Lenz Schwabing</h1>
+<p class="hint">{kampagne}</p>
+<form method="post" action="/admin/kampagne-schalter"><input type="hidden" name="token" class="tok">
+<button name="aktion" value="start" type="submit">Kampagne starten</button>
+<button name="aktion" value="pause" type="submit" style="background:#5b6b82">Kampagne pausieren</button></form>
 <script>
 (function(){
   var K="immobye_rueckruf_admin_token", t=document.getElementById("token"), m=document.getElementById("merken");
   try { var v=localStorage.getItem(K); if(v){ t.value=v; m.checked=true; } } catch(e) {}
+  document.querySelectorAll(".tok").forEach(function(h){ h.form.addEventListener("submit", function(){ h.value=t.value; }); });
   var V={bestand:["Helle 3-Zimmer-Wohnung in Wersten","Herr Gottschalk","Timon Gottschalk"],
          neubau_schwabing:["Lenz Schwabing","Herr Kunzmann","Marco Kunzmann"]};
   document.getElementById("art").addEventListener("change", function(e){
@@ -262,7 +299,19 @@ In Propstack wird dabei nichts geschrieben.</p>
 def _admin_page(meldung: str = "") -> HTMLResponse:
     opts = "".join(f"<option>{html.escape(n)}</option>" for n in settings.test_numbers) or "<option disabled>keine TEST_NUMBERS eingetragen</option>"
     msg = f'<div class="msg">{html.escape(meldung)}</div>' if meldung else ""
-    return HTMLResponse(ADMIN_PAGE.replace("{optionen}", opts).replace("{meldung}", msg))
+    k = _kampagne_info()
+    ktext = (f"Status: {'läuft' if k.get('aktiv') else 'pausiert'} · Tageslimit {k.get('tageslimit')} · "
+             f"offen {k.get('offen', 0)} · eingeplant {k.get('eingeplant', 0)} · übersprungen {k.get('uebersprungen', 0)} · "
+             f"Retell-Kosten diesen Monat {k.get('retell_kosten_usd_monat', 0)} $")
+    return HTMLResponse(ADMIN_PAGE.replace("{optionen}", opts).replace("{meldung}", msg).replace("{kampagne}", html.escape(ktext)))
+
+
+@app.post("/admin/kampagne-schalter", response_class=HTMLResponse)
+def kampagne_schalter_form(token: str = Form(""), aktion: str = Form(...)):
+    if not settings.admin_token or not hmac.compare_digest(token, settings.admin_token):
+        return _admin_page("Admin-Token ist falsch (oben eintragen und „Auf diesem Gerät merken“).")
+    bot.set_kampagne_aktiv(aktion == "start")
+    return _admin_page("Kampagne läuft." if aktion == "start" else "Kampagne pausiert.")
 
 
 @app.get("/admin", response_class=HTMLResponse)
