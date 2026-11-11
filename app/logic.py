@@ -240,7 +240,7 @@ FELD_LABELS = [
     ("kaufzeitraum", "Kaufzeitraum"),
     ("lenz_schwabing_interesse", "Infos Lenz Schwabing gewünscht"),
     ("immobilien_im_bestand", "Hat schon vermietete Immobilien"),
-    ("preisrahmen_passt", "Preisrahmen ab ca. 500.000 € passt"),
+    ("preisrahmen_passt", "Preisrahmen ca. 500.000 € (5 % EK + NK) passt"),
     ("beratung_wunschzeiten", "Wunschzeiten Beratungsgespräch"),
     ("besichtigung_wunschzeiten", "Wunschzeiten Besichtigung"),
     ("rueckruf_wunschzeit", "Wunschzeit Rückruf"),
