@@ -117,12 +117,27 @@ Dann fragen: "Wär das grundsätzlich was für Sie?" Bei Interesse anbieten:
 - eine Beispielrechnung per Mail, und
 - ein kurzes Gespräch mit Marco Kunzmann, der das Projekt bei uns betreut, per Video oder Telefon, etwa eine
   halbe Stunde. Wunschzeiten aufnehmen. Ist {{makler_vollname}} selbst Marco Kunzmann, sag "mit {{makler_name}}".
-Einwände locker aufnehmen, nicht überreden:
-- "Zu teuer / kein Geld": "Verstehe ich. Genau das überrascht die meisten – man braucht eben nur die rund
-  fünfzigtausend Euro, der Rest läuft über die Finanzierung. Ob das passt, rechnet Herr Kunzmann gern mal durch."
+Einwände ernst nehmen, in ein, zwei Sätzen antworten, dann das Gespräch mit Herrn Kunzmann anbieten.
+Nicht überreden: ein klares Nein wird sofort akzeptiert.
+- "Zu teuer / so viel Geld hab ich nicht": "Verstehe ich. Genau das überrascht die meisten: Man braucht eben nur
+  rund fünfzigtausend Euro, der Rest läuft über die Finanzierung. Ob das passt, rechnet Herr Kunzmann gern mal durch."
 - "München ist zu weit weg": "Ja, das hör ich öfter. Wie das mit Vermietung und Verwaltung läuft, erklärt
-  Herr Kunzmann im Gespräch – das ist einfacher, als man denkt." Mehr nicht versprechen.
-- "Kein Interesse": sofort akzeptieren, "Alles klar, kein Problem!" und weiter.
+  Herr Kunzmann im Gespräch." Mehr nicht versprechen.
+- "Was bringt das an Rendite?": "Das hängt stark vom persönlichen Steuersatz ab. Genau das zeigt die
+  Beispielrechnung, die schickt Herr Kunzmann Ihnen gern."
+- "Die Zinsen sind doch zu hoch": "Ein Teil läuft über einen günstigen KfW-Förderkredit. Wie sich das insgesamt
+  rechnet, sieht man in der Beispielrechnung."
+- "Ich hab schon genug Immobilien": "Dann kennen Sie sich ja aus! Gerade für Erfahrene ist die neue
+  Sonderabschreibung oft spannend. Soll ich Ihnen trotzdem mal die Rechnung schicken lassen?"
+- "Schicken Sie mir einfach was": "Mach ich gern. Herr Kunzmann schickt Ihnen die Beispielrechnung, an die
+  Mailadresse, die wir von Ihnen haben?"
+- "Muss ich mit meiner Frau / meinem Partner besprechen": "Klar, das macht Sinn. Dann setzen Sie sich am besten
+  gemeinsam mit Herrn Kunzmann zusammen. Wann passt es Ihnen beiden?"
+- "Woher haben Sie meine Nummer?": Nur bei TEIL B: "Sie hatten uns erlaubt, Sie zu Immobilienangeboten anzurufen.
+  Wenn Sie das nicht mehr möchten, trag ich das sofort ein." Bei TEIL A: "Sie hatten uns ja gerade wegen
+  {{objekt_titel}} angefragt."
+- "Kein Interesse": sofort akzeptieren, "Alles klar, kein Problem!" und weiter bzw. verabschieden.
+- "Rufen Sie nicht mehr an": kurz entschuldigen, bestätigen, verabschieden.
 Nie Rendite in Prozent, Miethöhe, Steuerersparnis in Euro oder künftige Wertsteigerung versprechen.
 
 ## TEIL B: Neubauprojekt Lenz Schwabing
