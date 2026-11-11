@@ -247,7 +247,7 @@ In Propstack wird dabei nichts geschrieben.</p>
   var K="immobye_rueckruf_admin_token", t=document.getElementById("token"), m=document.getElementById("merken");
   try { var v=localStorage.getItem(K); if(v){ t.value=v; m.checked=true; } } catch(e) {}
   var V={bestand:["Helle 3-Zimmer-Wohnung in Wersten","Herr Gottschalk","Timon Gottschalk"],
-         neubau_schwabing:["das Neubauprojekt Lenz Schwabing","Herr Kunzmann","Marco Kunzmann"]};
+         neubau_schwabing:["Lenz Schwabing","Herr Kunzmann","Marco Kunzmann"]};
   document.getElementById("art").addEventListener("change", function(e){
     var w=V[e.target.value]; document.getElementById("objekt").value=w[0];
     document.getElementById("makler").value=w[1]; document.getElementById("makler_voll").value=w[2];

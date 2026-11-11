@@ -339,8 +339,9 @@ def build_plan(
     zeilen.append(f"Anrufversuche: {attempts}")
     if extra:
         zeilen.append(html.escape(extra))
-    labels = [(k, "Beispielrechnung gewünscht" if schwabing and k == "lenz_schwabing_interesse" else lab)
-              for k, lab in FELD_LABELS]
+    umbenennen = {"lenz_schwabing_interesse": "Beispielrechnung gewünscht",
+                  "interesse_aktuell": "Interesse an neuen Kapitalanlagen"}
+    labels = [(k, umbenennen.get(k, lab) if schwabing else lab) for k, lab in FELD_LABELS]
     angaben = [(label, data.get(key)) for key, label in labels if _zeigen(key, data, art)]
     if angaben:
         zeilen.append("<br><b>Angaben im Gespräch</b>")
