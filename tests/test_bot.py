@@ -398,3 +398,56 @@ def test_note_hides_unclear_and_undiscussed_fields():
     plan2 = build_plan("interesse_ohne_termin", now=now, window=CallWindow(), data={
         "finanzierung": "offen", "finanzierungspartner_ok": False})
     assert "Kontakt Finanzierungspartner gewünscht: nein" in plan2.note_body
+
+
+# ---------------------------------------------------------------------------
+# Neubauprojekt Lenz Schwabing
+# ---------------------------------------------------------------------------
+def test_gespraechsart_by_title_and_id():
+    from app.logic import gespraechsart
+    assert gespraechsart({"title": {"value": "Lenz Schwabing – Apartments"}}, 99, []) == "neubau_schwabing"
+    assert gespraechsart({"title": "Helle 3-Zimmer-Wohnung"}, 55, [55]) == "neubau_schwabing"
+    assert gespraechsart({"title": "Helle 3-Zimmer-Wohnung"}, 55, []) == "bestand"
+    assert gespraechsart(None, None, []) == "bestand"
+
+
+def test_schwabing_call_gets_variable_and_writes_beratung_task():
+    bot, apis, clock = make_bot(MON10)
+    apis.units[10] = {"id": 10, "title": {"value": "Lenz Schwabing"}, "city": "München", "broker_id": 7}
+    bot.poll_inquiries()
+    apis.inquiries = [_inquiry(created=MON10 + timedelta(minutes=1))]
+    clock["now"] = MON10 + timedelta(minutes=7)
+    bot.poll_inquiries()
+    assert bot.tick() == 1
+    assert apis.calls[0]["retell_llm_dynamic_variables"]["gespraechsart"] == "neubau_schwabing"
+    job = bot.db.recent_jobs()[0]
+    res = bot.handle_call(call_payload("call1", job["id"], data={
+        "ergebnis": "qualifiziert", "nutzung": "kapitalanlage", "immobilien_im_bestand": "ja",
+        "preisrahmen_passt": "ja", "lenz_schwabing_interesse": True, "beratung_wunschzeiten": "Dienstag ab 18 Uhr"}))
+    assert res == "qualifiziert"
+    titles = [p["task"]["title"] for p in apis.posts]
+    assert "KI-Rückruf: Lenz Schwabing: Qualifiziert – Beratungsgespräch gewünscht" in titles
+    assert "Lenz Schwabing: Beratungsgespräch vereinbaren" in titles
+    assert "Lenz Schwabing: Beispielrechnung an Interessent schicken" in titles
+    body = apis.posts[0]["task"]["body"]
+    assert "Wunschzeiten Beratungsgespräch: Dienstag ab 18 Uhr" in body
+    assert "Beispielrechnung gewünscht: ja" in body
+    assert "Terminwunsch für das Beratungsgespräch ist noch NICHT bestätigt" in body
+
+
+def test_bestand_call_has_bestand_variable():
+    bot, apis, clock = make_bot(MON10)
+    bot.poll_inquiries()
+    apis.inquiries = [_inquiry(created=MON10 + timedelta(minutes=1))]
+    clock["now"] = MON10 + timedelta(minutes=7)
+    bot.poll_inquiries()
+    bot.tick()
+    assert apis.calls[0]["retell_llm_dynamic_variables"]["gespraechsart"] == "bestand"
+
+
+def test_prompt_has_both_parts():
+    from app.retell_agent import PROMPT, ANALYSIS_FIELDS
+    assert "TEIL A: Bestandsobjekt" in PROMPT and "TEIL B: Neubauprojekt Lenz Schwabing" in PROMPT
+    assert "{{gespraechsart}}" in PROMPT
+    names = {f["name"] for f in ANALYSIS_FIELDS}
+    assert {"immobilien_im_bestand", "preisrahmen_passt", "beratung_wunschzeiten"} <= names

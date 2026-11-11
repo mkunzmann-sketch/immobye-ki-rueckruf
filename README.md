@@ -30,6 +30,15 @@ Zustimmung zur Verkaufsansprache → „KI: Verkäufer-Lead“ + Aufgabe.
 Aufgaben gehen an den Betreuer des Objekts. Fällt eine Aufgabe in den Feierabend, wird sie auf den nächsten
 Morgen gelegt.
 
+## Neubauprojekt Lenz Schwabing
+
+Für Anfragen zu Lenz Schwabing nutzt Lea einen eigenen Gesprächsteil (TEIL B im Leitfaden): statt Besichtigung
+ein Beratungsgespräch per Video/Telefon, dazu Fragen nach Anlageerfahrung und Preisrahmen und das Angebot einer
+Beispielrechnung. Erkannt wird das Projekt am Objekttitel (enthält „Lenz“ und „Schwabing“) oder über
+`SCHWABING_PROPERTY_IDS` (Propstack-Objekt-IDs, kommagetrennt). In Propstack entstehen dann Aufgaben wie
+„Lenz Schwabing: Beratungsgespräch vereinbaren“ und „Lenz Schwabing: Beispielrechnung an Interessent schicken“ –
+zugewiesen an den Betreuer des Objekts. Auf der Testseite `/admin` lässt sich die Gesprächsart auswählen.
+
 ## Betriebsarten (`MODE`)
 
 - `dry` – holt Anfragen und protokolliert, ruft niemanden an, schreibt nichts nach Propstack.

@@ -239,6 +239,9 @@ FELD_LABELS = [
     ("verkaeufer_ansprache_ok", "Ansprache zum Verkauf der eigenen Immobilie ok"),
     ("kaufzeitraum", "Kaufzeitraum"),
     ("lenz_schwabing_interesse", "Infos Lenz Schwabing gewünscht"),
+    ("immobilien_im_bestand", "Hat schon vermietete Immobilien"),
+    ("preisrahmen_passt", "Preisrahmen ab ca. 500.000 € passt"),
+    ("beratung_wunschzeiten", "Wunschzeiten Beratungsgespräch"),
     ("besichtigung_wunschzeiten", "Wunschzeiten Besichtigung"),
     ("rueckruf_wunschzeit", "Wunschzeit Rückruf"),
     ("sonstiges", "Sonstiges"),
@@ -281,14 +284,29 @@ _NUR_WENN = {
 }
 
 
-def _zeigen(key: str, data: dict) -> bool:
+SCHWABING = "neubau_schwabing"
+
+
+def gespraechsart(unit: dict | None, property_id: int | None, schwabing_ids: list[int]) -> str:
+    """Welcher Teil des Leitfadens gilt: Bestandsobjekt oder Neubauprojekt Lenz Schwabing."""
+    if property_id and property_id in schwabing_ids:
+        return SCHWABING
+    unit = unit or {}
+    t = unit.get("title")
+    if isinstance(t, dict):
+        t = t.get("value")
+    text = f"{t or ''} {unit.get('name') or ''}".lower()
+    return SCHWABING if "lenz" in text and "schwabing" in text else "bestand"
+
+
+def _zeigen(key: str, data: dict, art: str = "bestand") -> bool:
     """Nur Angaben in die Notiz, die im Gespräch wirklich geklärt wurden."""
     v = data.get(key)
     if v in (None, "", []):
         return False
     if isinstance(v, str) and v.strip().lower() == "unklar":
         return False
-    if key in _NUR_WENN and not _truthy(v):
+    if key in _NUR_WENN and not _truthy(v) and not (art == SCHWABING and key == "lenz_schwabing_interesse"):
         feld, wert = _NUR_WENN[key]
         return str(data.get(feld, "")).strip().lower() == wert
     return True
@@ -304,9 +322,14 @@ def build_plan(
     objekt: str = "",
     attempts: int = 1,
     extra: str = "",
+    art: str = "bestand",
 ) -> WritePlan:
     data = data or {}
+    schwabing = art == SCHWABING
     titel = ERGEBNIS_TEXT[ergebnis]
+    if schwabing and ergebnis == "qualifiziert":
+        titel = "Qualifiziert – Beratungsgespräch gewünscht"
+    praefix = "Lenz Schwabing: " if schwabing else ""
     task_needed, hours, group_key = ERGEBNIS_REGELN[ergebnis]
 
     zeilen = [f"<b>KI-Rückruf: {html.escape(titel)}</b>"]
@@ -315,7 +338,9 @@ def build_plan(
     zeilen.append(f"Anrufversuche: {attempts}")
     if extra:
         zeilen.append(html.escape(extra))
-    angaben = [(label, data.get(key)) for key, label in FELD_LABELS if _zeigen(key, data)]
+    labels = [(k, "Beispielrechnung gewünscht" if schwabing and k == "lenz_schwabing_interesse" else lab)
+              for k, lab in FELD_LABELS]
+    angaben = [(label, data.get(key)) for key, label in labels if _zeigen(key, data, art)]
     if angaben:
         zeilen.append("<br><b>Angaben im Gespräch</b>")
         zeilen += [f"{html.escape(label)}: {_fmt(v)}" for label, v in angaben]
@@ -323,11 +348,14 @@ def build_plan(
         zeilen.append("<br><b>Zusammenfassung</b>")
         zeilen.append(html.escape(summary))
     if ergebnis == "qualifiziert":
-        zeilen.append("<br>Hinweis: Besichtigungswunsch ist noch NICHT bestätigt.")
-    plan = WritePlan(ergebnis=ergebnis, note_title=f"KI-Rückruf: {titel}", note_body="<br>".join(zeilen))
+        was = "Terminwunsch für das Beratungsgespräch" if schwabing else "Besichtigungswunsch"
+        zeilen.append(f"<br>Hinweis: {was} ist noch NICHT bestätigt.")
+    plan = WritePlan(ergebnis=ergebnis, note_title=f"KI-Rückruf: {praefix}{titel}", note_body="<br>".join(zeilen))
 
     if task_needed:
-        plan.tasks.append(Task(f"Rückruf Interessent – {titel}", window.task_due(now, hours)))
+        aufgabe = (f"{praefix}Beratungsgespräch vereinbaren" if schwabing and ergebnis == "qualifiziert"
+                   else f"{praefix}Rückruf Interessent – {titel}")
+        plan.tasks.append(Task(aufgabe, window.task_due(now, hours)))
     if group_key:
         plan.add_group_keys.append(group_key)
     if ergebnis == "nicht_anrufen":

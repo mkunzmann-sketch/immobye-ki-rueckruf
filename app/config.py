@@ -51,6 +51,10 @@ class Settings:
     # Schutz für die Admin-Endpunkte
     admin_token: str = field(default_factory=lambda: os.getenv("ADMIN_TOKEN", ""))
 
+    # Propstack-Objekt-IDs, bei denen Lea den Leitfaden für das Neubauprojekt Lenz Schwabing nutzt.
+    # Zusätzlich gilt das für jedes Objekt, dessen Titel "Lenz" und "Schwabing" enthält.
+    schwabing_property_ids: list[int] = field(default_factory=lambda: [int(x) for x in _list("SCHWABING_PROPERTY_IDS")])
+
     # Testmodus: nur diese Nummern werden angerufen (E.164, kommagetrennt)
     test_numbers: list[str] = field(default_factory=lambda: _list("TEST_NUMBERS"))
 

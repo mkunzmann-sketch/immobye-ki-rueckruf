@@ -8,7 +8,7 @@ from .clients import PropstackClient, RetellClient
 from .config import Settings
 from .db import DB, iso, now_iso, parse_iso
 from .logic import (
-    CallWindow, anrede, anrede_dativ, build_plan, classify_call, next_attempt_at, pick_phone,
+    CallWindow, anrede, anrede_dativ, build_plan, classify_call, gespraechsart, next_attempt_at, pick_phone,
 )
 
 log = logging.getLogger("rueckruf")
@@ -153,6 +153,7 @@ class Bot:
             "makler_vollname": (f"{broker.get('first_name') or ''} {broker.get('last_name') or ''}".strip()
                                 or broker.get("name") or "dem Team"),
             "firma": self.s.firma_gesprochen,
+            "gespraechsart": gespraechsart(unit, job["property_id"], self.s.schwabing_property_ids),
         }
         attempt = job["attempts"] + 1
         if self.s.dry or not self.retell:
@@ -215,14 +216,16 @@ class Bot:
         return self._finish(job, final_ergebnis, extra=extra)
 
     def _finish(self, job, ergebnis: str, *, data: dict | None = None, summary: str = "", extra: str = "") -> str:
-        objekt = ""
+        objekt, unit = "", {}
         try:
             if job["property_id"]:
-                objekt = _title(self.ps.unit(job["property_id"]))
+                unit = self.ps.unit(job["property_id"])
+                objekt = _title(unit)
         except Exception:  # noqa: BLE001
             pass
+        art = gespraechsart(unit, job["property_id"], self.s.schwabing_property_ids)
         plan = build_plan(ergebnis, now=self.clock(), window=self.window, data=data, summary=summary,
-                          objekt=objekt, attempts=job["attempts"], extra=extra)
+                          objekt=objekt, attempts=job["attempts"], extra=extra, art=art)
         cid, pid = job["client_id"], job["property_id"]
         self.ps.create_note(title=plan.note_title, body=plan.note_body, client_id=cid, property_id=pid,
                             note_type_id=self.s.note_type_id)

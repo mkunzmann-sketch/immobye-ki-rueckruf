@@ -235,15 +235,23 @@ In Propstack wird dabei nichts geschrieben.</p>
 <label style="display:flex;gap:8px;align-items:center;font-weight:400;margin-top:8px">
 <input id="merken" type="checkbox" style="width:auto"> Auf diesem Gerät merken</label>
 <label>Testnummer</label><select name="nummer">{optionen}</select>
+<label>Gesprächsart</label><select name="art" id="art">
+<option value="bestand">Bestandsobjekt</option><option value="neubau_schwabing">Neubau Lenz Schwabing</option></select>
 <label>Anrede im Gespräch</label><input name="kunde" value="Herr Kunzmann">
-<label>Objekt</label><input name="objekt" value="Helle 3-Zimmer-Wohnung in Wersten">
-<label>Makler (Anrede)</label><input name="makler" value="Herr Gottschalk">
-<label>Makler (voller Name)</label><input name="makler_voll" value="Timon Gottschalk">
+<label>Objekt</label><input name="objekt" id="objekt" value="Helle 3-Zimmer-Wohnung in Wersten">
+<label>Makler (Anrede)</label><input name="makler" id="makler" value="Herr Gottschalk">
+<label>Makler (voller Name)</label><input name="makler_voll" id="makler_voll" value="Timon Gottschalk">
 <button type="submit">Jetzt anrufen</button></form>{meldung}
 <script>
 (function(){
   var K="immobye_rueckruf_admin_token", t=document.getElementById("token"), m=document.getElementById("merken");
   try { var v=localStorage.getItem(K); if(v){ t.value=v; m.checked=true; } } catch(e) {}
+  var V={bestand:["Helle 3-Zimmer-Wohnung in Wersten","Herr Gottschalk","Timon Gottschalk"],
+         neubau_schwabing:["das Neubauprojekt Lenz Schwabing","Herr Kunzmann","Marco Kunzmann"]};
+  document.getElementById("art").addEventListener("change", function(e){
+    var w=V[e.target.value]; document.getElementById("objekt").value=w[0];
+    document.getElementById("makler").value=w[1]; document.getElementById("makler_voll").value=w[2];
+  });
   document.querySelector("form").addEventListener("submit", function(){
     try { if(m.checked){ localStorage.setItem(K, t.value); } else { localStorage.removeItem(K); } } catch(e) {}
   });
@@ -264,7 +272,7 @@ def admin_page():
 
 @app.post("/admin/demo-anruf", response_class=HTMLResponse)
 def demo_anruf(token: str = Form(...), nummer: str = Form(...), kunde: str = Form(""), objekt: str = Form(""),
-               makler: str = Form(""), makler_voll: str = Form("")):
+               makler: str = Form(""), makler_voll: str = Form(""), art: str = Form("bestand")):
     if not settings.admin_token or not hmac.compare_digest(token, settings.admin_token):
         return _admin_page("Admin-Token ist falsch.")
     if nummer not in settings.test_numbers:
@@ -278,7 +286,8 @@ def demo_anruf(token: str = Form(...), nummer: str = Form(...), kunde: str = For
                        "kunde_anrede_dativ": anrede_dativ(kunde or "Herr Kunzmann"), "kunde_name": kunde,
                        "objekt_titel": objekt or "Ihre Immobilienanfrage", "objekt_ort": "",
                        "makler_name": makler or "unser Team", "makler_vollname": makler_voll or "Timon Gottschalk",
-                       "firma": settings.firma_gesprochen},
+                       "firma": settings.firma_gesprochen,
+                       "gespraechsart": "neubau_schwabing" if art == "neubau_schwabing" else "bestand"},
             metadata={"demo": True}, idempotency_key=f"demo-{int(time.time())}",
         )
     except Exception as e:  # noqa: BLE001
