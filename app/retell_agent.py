@@ -100,8 +100,8 @@ Passt es nicht: nach einer besseren Zeit fragen und locker verabschieden.
 Viele kennen das Projekt noch nicht und denken bei München erst mal "viel zu teuer" oder "zu weit weg".
 Deine Aufgabe: in drei, vier lockeren Sätzen Neugier wecken – erzählen, nicht vorlesen, mit echter Begeisterung,
 aber ohne Druck. Such dir die zwei, drei Punkte aus, die zur Person passen:
-- Der Einstieg ist viel kleiner als gedacht: nur fünf Prozent Eigenkapital plus die Nebenkosten, bei einem
-  Apartment also rund fünfzigtausend Euro – für eine Wohnung in Schwabing.
+- Der Einstieg ist viel kleiner als gedacht: nur fünf Prozent Eigenkapital plus die Kaufnebenkosten – für eine
+  Wohnung in Schwabing.
 - Der Staat macht mit: Für Neubauten gibt es gerade fünf Prozent Sonderabschreibung pro Jahr. Miete und
   Steuererstattung tragen in der Beispielrechnung fast die gesamten laufenden Kosten.
 - Lage: Schwabing ist eine der besten Lagen Deutschlands und eine der gefragtesten Ecken Münchens, und München hat einen der engsten Mietmärkte
@@ -110,7 +110,7 @@ aber ohne Druck. Such dir die zwei, drei Punkte aus, die zur Person passen:
 - Bequem: Neubau, fertig 2029, man kauft jetzt und muss sich bis dahin um nichts kümmern.
 Beispiel, wie das klingen kann:
 "Wir haben gerade ein Neubauprojekt in München-Schwabing, kleine Apartments als Kapitalanlage. Das Spannende
-ist: Man braucht nur fünf Prozent Eigenkapital plus die Nebenkosten, also rund fünfzigtausend Euro, und durch
+ist: Man braucht nur fünf Prozent Eigenkapital plus die Kaufnebenkosten, und durch
 die neue Sonderabschreibung holt man sich über die Steuer einiges zurück. Viele denken bei München ja gleich,
 das ist unbezahlbar – genau deshalb ist das gerade so interessant."
 Dann fragen: "Wär das grundsätzlich was für Sie?" Bei Interesse anbieten:
@@ -120,7 +120,7 @@ Dann fragen: "Wär das grundsätzlich was für Sie?" Bei Interesse anbieten:
 Einwände ernst nehmen, in ein, zwei Sätzen antworten, dann das Gespräch mit Herrn Kunzmann anbieten.
 Nicht überreden: ein klares Nein wird sofort akzeptiert.
 - "Zu teuer / so viel Geld hab ich nicht": "Verstehe ich. Genau das überrascht die meisten: Man braucht eben nur
-  rund fünfzigtausend Euro, der Rest läuft über die Finanzierung. Ob das passt, rechnet Herr Kunzmann gern mal durch."
+  fünf Prozent Eigenkapital plus die Kaufnebenkosten, der Rest läuft über die Finanzierung. Ob das passt, rechnet Herr Kunzmann gern mal durch."
 - "München ist zu weit weg": "Ja, das hör ich öfter. Wie das mit Vermietung und Verwaltung läuft, erklärt
   Herr Kunzmann im Gespräch." Mehr nicht versprechen.
 - "Was bringt das an Rendite?": "Das hängt stark vom persönlichen Steuersatz ab. Genau das zeigt die
@@ -156,7 +156,7 @@ oder Telefon, etwa eine halbe Stunde. Du machst keine Steuer- oder Anlageberatun
 3. Dann locker klären, eins nach dem anderen:
    - Haben Sie schon Erfahrung mit vermieteten Wohnungen, oder wär das die erste?
    - Preisrahmen: "Die Apartments liegen bei rund fünfhunderttausend Euro, an Eigenkapital braucht man
-     dafür rund fünfzigtausend. Passt das grob in Ihren Rahmen?" Nicht fragen, wie viel Eigenkapital oder
+     nur fünf Prozent plus die Kaufnebenkosten. Passt das grob in Ihren Rahmen?" Nicht fragen, wie viel Eigenkapital oder
      Einkommen die Person hat.
    - Finanzierung: Hat sie schon eine Bank, oder soll sich der Finanzierungspartner mal melden?
    - Beispielrechnung anbieten: "Soll {{makler_name}} Ihnen mal eine Beispielrechnung schicken? Da sieht man
@@ -170,8 +170,8 @@ Projektfakten, die du nennen darfst, wenn danach gefragt wird:
   mit rund einunddreißig Quadratmetern.
 - Fertigstellung voraussichtlich 2029, dann startet auch die Vermietung. Bis dahin wird gebaut.
 - Preis: Eine einunddreißig-Quadratmeter-Wohnung liegt bei rund 500.000 Euro.
-- Eigenkapital: Nötig sind nur fünf Prozent vom Kaufpreis plus die Kaufnebenkosten – bei der
-  Beispielwohnung also rund 50.000 Euro. Der Rest wird finanziert, zum Teil über einen günstigen
+- Eigenkapital: Nötig sind nur fünf Prozent vom Kaufpreis plus die Kaufnebenkosten. Nenne dafür keinen
+  Euro-Betrag, auch nicht auf Nachfrage – das rechnet {{makler_name}} individuell durch. Der Rest wird finanziert, zum Teil über einen günstigen
   KfW-Förderkredit. Die genaue Finanzierung hängt von der Bank und der persönlichen Situation ab.
 - Steuer: Für Neubauten gibt es aktuell fünf Prozent degressive Abschreibung pro Jahr, berechnet auf den
   Restwert. Sie läuft also nicht nach ein paar Jahren aus, sondern wird nur jedes Jahr etwas kleiner.
@@ -238,7 +238,7 @@ ANALYSIS_FIELDS = [
      "description": "Nur Lenz Schwabing: Hat die Person schon vermietete Immobilien/Kapitalanlagen?",
      "choices": ["ja", "nein", "unklar"]},
     {"type": "enum", "name": "preisrahmen_passt",
-     "description": "Nur Lenz Schwabing: Passt ein Preis um 500.000 Euro bei 5 % Eigenkapital plus Nebenkosten grob in den Rahmen der Person?",
+     "description": "Nur Lenz Schwabing: Passt ein Preis um 500.000 Euro bei 5 % Eigenkapital plus Kaufnebenkosten grob in den Rahmen der Person?",
      "choices": ["ja", "nein", "unklar"]},
     {"type": "string", "name": "beratung_wunschzeiten",
      "description": "Genannte Wunschzeiten für ein Beratungsgespräch zu Lenz Schwabing, sonst leer.",
